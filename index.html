@@ -223,7 +223,7 @@ function rom(h){ if(!h) return ''; let v=_RC.get(h); if(v!==undefined) return v;
     if(_R1[c]){ o+=_R1[c]; i++; continue; }
     o+= c==='（'?' (':c==='）'?')':c==='・'?' ':c; i++; }
   // 長音は記号なしで表記（おう→o、うう→u、おお→o）
-  o=o.replace(/ou(?![aiueo])/g,'o').replace(/oo/g,'o').replace(/uu/g,'u');
+  o=o.replace(/ou/g,'o').replace(/oo/g,'o').replace(/uu/g,'u');
   v=o.replace(/(^|[\s(\[])([a-z])/g,(m,a,b)=>a+b.toUpperCase()); _RC.set(h,v); return v; }
 const sName = r => { if(!EN) return r[0]; const y=yomi(r); return y?rom(y):r[0]; };
 const toHira = s => (s||'').normalize('NFKC').replace(/[\u30a1-\u30f6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
@@ -386,12 +386,12 @@ const svg=$('map'); const NS='http://www.w3.org/2000/svg';
 function setVB(){svg.setAttribute('viewBox',vb.map(v=>v.toFixed(1)).join(' '));drawLabels()}
 function fitPoints(pts,pad=0.25){ if(!pts.length){vb=[...FULL];setVB();return}
   let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity; pts.forEach(([x,y])=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)});
-  const r=svg.clientWidth/Math.max(1,svg.clientHeight)||1.2; let w=Math.max(x1-x0,30), h=Math.max(y1-y0,30);
+  const r=svg.clientWidth/Math.max(1,svg.clientHeight)||1.2; let w=Math.max(x1-x0,6), h=Math.max(y1-y0,6);
   w*=1+pad*2; h*=1+pad*2; if(w/h>r) h=w/r; else w=h*r; const cx=(x0+x1)/2, cy=(y0+y1)/2; vb=[cx-w/2,cy-h/2,w,h]; setVB();}
 function fitAll(){ const r=svg.clientWidth/Math.max(1,svg.clientHeight)||1.2; let [x,y,w,h]=FULL; if(w/h>r){const nh=w/r; y-= (nh-h)/2; h=nh}else{const nw=h*r; x-=(nw-w)/2; w=nw} vb=[x,y,w,h]; setVB() }
 $('fitall').onclick=fitAll;
 $('fitres').onclick=()=>{ const lp=linePoints(); fitPoints(lp.length?lp:current.flatMap(e=>e.path.map(s=>P[s])), lp.length?0.08:0.25); };
-function zoom(f,cx,cy){ if(cx===undefined){cx=vb[0]+vb[2]/2;cy=vb[1]+vb[3]/2} const nw=Math.min(Math.max(vb[2]*f,12),FULL[2]*2.2), k=nw/vb[2];
+function zoom(f,cx,cy){ if(cx===undefined){cx=vb[0]+vb[2]/2;cy=vb[1]+vb[3]/2} const nw=Math.min(Math.max(vb[2]*f,1.5),FULL[2]*2.2), k=nw/vb[2];
   vb=[cx-(cx-vb[0])*k, cy-(cy-vb[1])*k, vb[2]*k, vb[3]*k]; setVB() }
 $('zin').onclick=()=>zoom(0.6); $('zout').onclick=()=>zoom(1/0.6);
 function toSvg(ev){const r=svg.getBoundingClientRect(); return [vb[0]+(ev.clientX-r.left)/r.width*vb[2], vb[1]+(ev.clientY-r.top)/r.height*vb[3]]}
@@ -420,7 +420,7 @@ const oki=document.createElementNS(NS,'g');
  const t=document.createElementNS(NS,'text');t.setAttribute('x',Math.min(x0,x1)+4);t.setAttribute('y',Math.min(y0,y1)+14);t.setAttribute('fill','var(--muted)');t.setAttribute('font-size','11');t.textContent='沖縄（差し込み図）';t.dataset.scale='1';
  oki.append(r,t)}
 const gLand=document.createElementNS(NS,'g');
-svg.append(gLand,oki,gEv,gHi,gLab);
+svg.append(oki,gLand,gEv,gHi,gLab); // 沖縄の枠は一番下（路線・駅を隠さない）
 loadLand();
 // ---- 海岸線（mledoze/countries の日本の輪郭データ、経度・緯度のGeoJSON）
 async function loadLand(){
