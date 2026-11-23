@@ -593,7 +593,7 @@ const THRU=[
  [YU, [...L([SY],1983),...L([TJP],1987),...L([SIP],1998)]],
  [TJ, [...L([YU],1987),...L([FK],2008),...L([TOY,MM],2013)]],
  [SI, [...L([SY,YUK],1998),...L([FKK],2008),...L([TOY,MM],2013)]],
- [SY, [...L([YUK],1994),...L([FKK],2008),...L([TOY,MM],2013)]],
+ [SY, [...L([SIP,YUK],1994),...L([FKK],2008),...L([TOY,MM],2013)]],
  [MM, [...L([TOY],2004),...L([FK,TJP,SIP,SY],2013)]],
  [HB, [...L([ISK],1962),[TOYP,1964,2013],...L([NKP],2013)]],
  [HZ, [...L([DT],1978),...L([ISO],2003),...L([NKP],2006)]],
@@ -794,10 +794,15 @@ function drawStations(){
     if(ls) c.setAttribute('stroke', ls==='t'?'var(--thru)':'var(--hl)');
     if(sel || (ls && lineLabels) || (k<0.03 && list.length<900)){
       if(!sel && placed.some(([a,b])=>Math.abs(a-q[0])<fs*2.6&&Math.abs(b-q[1])<fs*(kanaOn&&YOMI?1.9:1.1))) return; placed.push(q);
-      const t=document.createElementNS(NS,'text'); t.setAttribute('x',q[0]+rr*1.6); t.setAttribute('y',q[1]-rr*1.2); t.setAttribute('font-size',sel?fs*1.25:fs);
-      t.setAttribute('fill','var(--fg)'); t.setAttribute('paint-order','stroke'); t.setAttribute('stroke','var(--land)'); t.setAttribute('stroke-width',fs*0.3); t.style.pointerEvents='none';
+      // 駅名は、近くの駅（＝線路の向き）と反対側の斜め方向に置き、線を隠さないようにする
+      let nb=[]; for(const o of list){ const dx=o[1][0]-q[0], dy=o[1][1]-q[1], dd=dx*dx+dy*dy; if(dd>1e-12) nb.push([dd,dx,dy]); } nb.sort((a,b)=>a[0]-b[0]); nb=nb.slice(0,5).filter(x=>x[0]<=nb[0][0]*9);
+      let bq=[1,-1], bs=Infinity; for(const qd of [[1,-1],[-1,-1],[1,1],[-1,1]]){ let sc=0; for(const [dd,dx,dy] of nb){ const l=Math.sqrt(dd); sc+=Math.max(0,(qd[0]*dx+qd[1]*dy)/(l*1.4142)); } if(sc<bs-0.05){bs=sc;bq=qd;} }
+      const fz=sel?fs*1.25:fs, hasK=kanaOn&&(EN?r[0]:yomi(r))&&(EN?r[0]:yomi(r))!==sName(r);
+      const ty = bq[1]<0 ? q[1]-rr*1.2 : q[1]+rr*1.2+fz*0.85+(hasK?fz*0.66:0);
+      const t=document.createElementNS(NS,'text'); t.setAttribute('x',q[0]+bq[0]*rr*1.6); t.setAttribute('y',ty); t.setAttribute('font-size',fz); if(bq[0]<0) t.setAttribute('text-anchor','end');
+      t.setAttribute('fill','var(--fg)'); t.setAttribute('paint-order','stroke'); t.setAttribute('stroke','var(--land)'); t.setAttribute('stroke-width',fs*0.28); t.setAttribute('stroke-opacity','0.7'); t.style.pointerEvents='none';
       if(sel) t.setAttribute('font-weight','700'); t.textContent=sName(r); frag.append(t);
-      const kk=kanaOn&&(EN?r[0]:yomi(r)); if(kk&&kk!==t.textContent){ const u=t.cloneNode(false); u.setAttribute('y',q[1]-rr*1.2-(sel?fs*1.3:fs*1.05)); u.setAttribute('font-size',(sel?fs*1.25:fs)*0.62); u.removeAttribute('font-weight'); u.textContent=kk; frag.append(u); }
+      const kk=kanaOn&&(EN?r[0]:yomi(r)); if(kk&&kk!==t.textContent){ const u=t.cloneNode(false); u.setAttribute('y',ty-(sel?fs*1.3:fs*1.05)); u.setAttribute('font-size',(sel?fs*1.25:fs)*0.62); u.removeAttribute('font-weight'); u.textContent=kk; frag.append(u); }
     }
   });
   gSta.append(frag);
