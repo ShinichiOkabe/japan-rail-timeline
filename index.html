@@ -391,7 +391,7 @@ function fitPoints(pts,pad=0.25){ if(!pts.length){vb=[...FULL];setVB();return}
 function fitAll(){ const r=svg.clientWidth/Math.max(1,svg.clientHeight)||1.2; let [x,y,w,h]=FULL; if(w/h>r){const nh=w/r; y-= (nh-h)/2; h=nh}else{const nw=h*r; x-=(nw-w)/2; w=nw} vb=[x,y,w,h]; setVB() }
 $('fitall').onclick=fitAll;
 $('fitres').onclick=()=>{ const lp=linePoints(); fitPoints(lp.length?lp:current.flatMap(e=>e.path.map(s=>P[s])), lp.length?0.08:0.25); };
-function zoom(f,cx,cy){ if(cx===undefined){cx=vb[0]+vb[2]/2;cy=vb[1]+vb[3]/2} const nw=Math.min(Math.max(vb[2]*f,1.5),FULL[2]*2.2), k=nw/vb[2];
+function zoom(f,cx,cy){ if(cx===undefined){cx=vb[0]+vb[2]/2;cy=vb[1]+vb[3]/2} const nw=Math.min(Math.max(vb[2]*f,0.2),FULL[2]*2.2), k=nw/vb[2];
   vb=[cx-(cx-vb[0])*k, cy-(cy-vb[1])*k, vb[2]*k, vb[3]*k]; setVB() }
 $('zin').onclick=()=>zoom(0.6); $('zout').onclick=()=>zoom(1/0.6);
 function toSvg(ev){const r=svg.getBoundingClientRect(); return [vb[0]+(ev.clientX-r.left)/r.width*vb[2], vb[1]+(ev.clientY-r.top)/r.height*vb[3]]}
@@ -755,7 +755,7 @@ function drawStations(){
   } else if(k<0.09){
     for(const r of STA){ if(!staActive(r,y)) continue; const q=proj(r[8],r[7]); if(inV(q[0],q[1])) list.push([r,q]); if(list.length>3000) break; }
   }
-  if(selSta){ const cur=atYear(selSta,y)||selSta; const q=proj(cur[8],cur[7]); list.push([cur,q,true]); updateStaDetail(); }
+  if(selSta){ const cur=atYear(selSta,y); if(cur){ const q=proj(cur[8],cur[7]); list.push([cur,q,true]); } updateStaDetail(); } // その年に営業していない駅は地図に出さない
   const frag=document.createDocumentFragment(); const placed=[];
   const lineLabels = lineSt.length && (list.length<=260 || k<0.05);
   list.forEach(([r,q,sel,ls])=>{
