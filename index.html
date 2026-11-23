@@ -493,7 +493,9 @@ const SBS=V('総武本線（千葉〜佐倉）',JE), SBN=V('総武本線（佐�
   ISK=V('伊勢崎線（北千住〜久喜）',['東武']), ISO=V('伊勢崎線（押上〜久喜）',['東武']), NKP=V('日光線（東武動物公園〜南栗橋）',['東武']), SOH=V('相鉄本線（西谷〜海老名）',['相模鉄道']),
   YKP=V('横須賀線（大船〜逗子）',JE), JUTK=V('宇都宮線（大宮〜栗橋）',JE), NKN=V('日光線（栗橋〜東武日光）',['東武']), TOYS=V('東横線（渋谷〜日吉）',['東急']),
   OHG=V('小田原線（新宿〜新松田）',['小田急']), HKKP=V('阪急神戸線（神戸三宮〜六甲）',['阪急']), SYSP=V('山陽本線（西代〜須磨浦公園）',['山陽']),
-  KTZP=V('京都市東西線（御陵〜太秦天神川）',['京都市']), TSE=V('東北新幹線（東京〜大宮）',JE), JSE=V('上越新幹線（大宮〜高崎）',JE), TSM=V('東北新幹線（東京〜盛岡）',JE), KWP=V('京王線（笹塚〜調布）',['京王']);
+  KTZP=V('京都市東西線（御陵〜太秦天神川）',['京都市']), TSE=V('東北新幹線（東京〜大宮）',JE), JSE=V('上越新幹線（大宮〜高崎）',JE), TSM=V('東北新幹線（東京〜盛岡）',JE), KWP=V('京王線（笹塚〜調布）',['京王']), FKK=V('副都心線（小竹向原〜渋谷）',['東京地下鉄']), YUK=V('有楽町線（小竹向原〜新木場）',['東京地下鉄']),
+  JCT=V('中央線（立川〜東京）',JE), GBS=V('外房線（蘇我〜上総一ノ宮）',JE), YMTK=V('大和路線（天王寺〜加茂）',JW), YMTO=V('大和路線（久宝寺〜奈良）',JW),
+  THY=V('東海道線（横浜〜熱海）',JE), JUTO=V('宇都宮線（大宮〜宇都宮）',JE), SNYJ=V('相鉄新横浜線（羽沢横浜国大〜西谷）',['相模鉄道']);
 const VLINES=[SBS,SKY,KTK,UTL,JUT,SSL,SBK,CSK,JKY,JKB,BWK,GKT,YMT,SGN,JTZ,YMS,TSK,TUP];
 const H=(l,...o)=>S(l,...o);
 const JRE=H('','東日本旅客'), JRW=H('','西日本旅客');
@@ -504,10 +506,19 @@ const ASP=V('浅草線（泉岳寺〜押上）',['東京都']), KHP=V('京成本
   KKP=V('近鉄京都線（竹田〜大和西大寺）',['近畿日本']), NRK=V('近鉄奈良線（大和西大寺〜近鉄奈良）',['近畿日本']), CHP=V('筑肥線（姪浜〜唐津）',['九州旅客']),
   NKH=V('南海高野線（中百舌鳥〜なんば）',['南海']), CCP=V('秩父鉄道（御花畑〜三峰口・長瀞）',['秩父']), AZP=V('会津鉄道（会津高原尾瀬口〜会津田島）',['会津']),
   HKP=V('箱根登山鉄道（小田原〜箱根湯本）',['箱根']), TKP=V('東海道線（東京〜品川）',JE), OU1=V('奥羽線（福島〜新庄・山形新幹線）',JE), OU2=V('奥羽線（大曲〜秋田・秋田新幹線）',JE);
-[ASP,KHP,QHP,JCP,JSP,TOYP,CYP,HSP,HKJ,MKP,INP,KKP,NRK,CHP,NKH,CCP,AZP,HKP,TKP,OU1,OU2,SBS,SBN,NRP,NBP,GBP,JJP,GTP,OHP,TJP,SIP,ISK,ISO,NKP,SOH,YKP,JUTK,NKN,TOYS,OHG,HKKP,SYSP,KTZP,TSE,JSE,TSM,KWP].forEach(s=>s.p=true);
+[ASP,KHP,QHP,JCP,JSP,TOYP,CYP,HSP,HKJ,MKP,INP,KKP,NRK,CHP,NKH,CCP,AZP,HKP,TKP,OU1,OU2,SBS,SBN,NRP,NBP,GBP,JJP,GTP,OHP,TJP,SIP,ISK,ISO,NKP,SOH,YKP,JUTK,NKN,TOYS,OHG,HKKP,SYSP,KTZP,TSE,JSE,TSM,KWP,FKK,YUK,JCT,GBS,YMTK,YMTO,THY,JUTO,SNYJ].forEach(s=>s.p=true);
 // 相鉄線へ直通する列車は西谷から海老名方面へ走り、横浜〜西谷には乗り入れない
 const SOT=[SOH,S('相鉄いずみ野線','相模鉄道'),S('相鉄新横浜線','相模鉄道')]; // 乗り入れ先専用の区間
 const PARTIAL_SHARE=[
+ [JCT, JRE, [sp_('立川 国立 国分寺 西国分寺 武蔵小金井 東小金井 武蔵境 三鷹 吉祥寺 西荻窪 荻窪 阿佐ケ谷 高円寺 中野 新宿 四ツ谷 御茶ノ水 神田 東京')], 1950, 9999, '中央線（立川〜東京）','JR東日本（中央線）'],
+ [GBS, JRE, [sp_('蘇我 鎌取 誉田 土気 大網 永田 本納 新茂原 茂原 八積 上総一ノ宮')], 1950, 9999, '外房線（蘇我〜上総一ノ宮）','JR東日本（外房線）'],
+ [YMTK, JRW, [sp_('天王寺 東部市場前 平野 加美 久宝寺 八尾 志紀 柏原 高井田 河内堅上 三郷 王寺 法隆寺 大和小泉 郡山 奈良 平城山 木津 加茂')], 1950, 9999, '大和路線（天王寺〜加茂）','JR西日本（関西線）'],
+ [YMTO, JRW, [sp_('久宝寺 八尾 志紀 柏原 高井田 河内堅上 三郷 王寺 法隆寺 大和小泉 郡山 奈良')], 1950, 9999, '大和路線（久宝寺〜奈良）','JR西日本（関西線）'],
+ [THY, JRE, [sp_('横浜 戸塚 大船 藤沢 辻堂 茅ケ崎 平塚 大磯 二宮 国府津 鴨宮 小田原 早川 根府川 真鶴 湯河原 熱海')], 1950, 9999, '東海道線（横浜〜熱海）','JR東日本（東海道線）'],
+ [JUTO, JRE, [sp_('大宮 土呂 東大宮 蓮田 白岡 新白岡 久喜 東鷲宮 栗橋 古河 野木 間々田 小山 小金井 自治医大 石橋 雀宮 宇都宮')], 1950, 9999, '宇都宮線（大宮〜宇都宮）','JR東日本（東北線）'],
+ [SNYJ, H('相鉄新横浜線','相模鉄道'), [sp_('羽沢横浜国大 西谷')], 1950, 9999, '相鉄新横浜線（羽沢横浜国大〜西谷）','相模鉄道'],
+ [FKK, H('','東京地下鉄','帝都高速度'), [sp_('小竹向原 千川 要町 池袋 雑司が谷 西早稲田 東新宿 新宿三丁目 北参道 明治神宮前 渋谷')], 1950, 9999, '副都心線（小竹向原〜渋谷）','東京地下鉄'],
+ [YUK, H('','東京地下鉄','帝都高速度'), [sp_('小竹向原 千川 要町 池袋 東池袋 護国寺 江戸川橋 飯田橋 市ケ谷 麹町 永田町 桜田門 有楽町 銀座一丁目 新富町 月島 豊洲 辰巳 新木場')], 1950, 9999, '有楽町線（小竹向原〜新木場）','東京地下鉄'],
  [KWP, H('京王線','京王'), [sp_('笹塚 代田橋 明大前 下高井戸 桜上水 上北沢 八幡山 芦花公園 千歳烏山 仙川 つつじヶ丘 柴崎 国領 布田 調布')], 1950, 9999, '京王線（笹塚〜調布）','京王電鉄'],
  [YKP, H('横須賀線','東日本旅客'), [sp_('大船 北鎌倉 鎌倉 逗子')], 1950, 9999, '横須賀線（大船〜逗子）','JR東日本（横須賀線）'],
  [JUTK, JRE, [sp_('大宮 土呂 東大宮 蓮田 白岡 新白岡 久喜 東鷲宮 栗橋')], 1950, 9999, '宇都宮線（大宮〜栗橋）','JR東日本（東北線）'],
@@ -548,23 +559,23 @@ const THRU=[
  [S('横須賀線','東日本旅客'), [...L([SBK,SBS,NRP,NBP,GBP,SBN],1980)]],
  [SBK, [...L([S('横須賀線','東日本旅客')],1980),...L([SBS,NRP,NBP,GBP,SBN],1980)]],
  [S('総武線','東日本旅客'), [...L([S('横須賀線','東日本旅客')],1980),...L([TZ],1969)]],
- [JUT, [...L([S('東海道線','東日本旅客'),YKP],2001),...L([NKN,S('鬼怒川線','東武')],2006)]],
- [S('高崎線','東日本旅客'), L([S('東海道線','東日本旅客'),YKP],2001)],
- [S('東海道線','東日本旅客'), [...L([JUT,S('高崎線','東日本旅客')],2001),...L([JJ],2015),...L([S('伊東線','東日本旅客')],1950),...L([S('伊豆急行線','伊豆急')],1961)]],
+ [JUT, [...L([THY],2001,2014),...L([S('東海道線','東日本旅客')],2015),...L([YKP],2001),...L([NKN,S('鬼怒川線','東武')],2006)]],
+ [S('高崎線','東日本旅客'), [...L([THY],2001,2014),...L([S('東海道線','東日本旅客')],2015),...L([YKP],2001)]],
+ [S('東海道線','東日本旅客'), [...L([JUTO],2001,2014),...L([JUT],2015),...L([S('高崎線','東日本旅客')],2001),...L([JJ],2015),...L([S('伊東線','東日本旅客')],1950),...L([S('伊豆急行線','伊豆急')],1961)]],
  [S('常磐線','東日本旅客'), L([TKP],2015)],
  [S('伊東線','東日本旅客'), [...L([S('伊豆急行線','伊豆急')],1961),...L([S('東海道線','東日本旅客')],1950)]],
  [S('伊豆急行線','伊豆急'), L([S('伊東線','東日本旅客'),S('東海道線','東日本旅客')],1961)],
- [S('中央線','東日本旅客'), L([S('青梅線','東日本旅客')],1950)], [S('青梅線','東日本旅客'), L([S('中央線','東日本旅客')],1950)],
- [S('京葉線','東日本旅客'), [...L([S('武蔵野線','東日本旅客')],1988),...L([GBP,NBP],1990)]],
+ [S('中央線','東日本旅客'), L([S('青梅線','東日本旅客')],1950)], [S('青梅線','東日本旅客'), L([JCT],1950)],
+ [S('京葉線','東日本旅客'), [...L([S('武蔵野線','東日本旅客')],1988),...L([GBS,NBP],1990)]],
  [S('武蔵野線','東日本旅客'), L([S('京葉線','東日本旅客')],1988)],
  [S('JR東西線','西日本旅客'), L([GKT,JTZ,JKB],1997)], [GKT, L([S('JR東西線','西日本旅客'),JTZ,JKB],1997)], [JTZ, L([S('JR東西線','西日本旅客'),GKT],1997)],
  [JKB, [...L([JKY,BWK],1950),...L([S('JR東西線','西日本旅客'),GKT],1997)]], [JKY, L([JKB,BWK],1950)], [BWK, [...L([JKY,JKB],1950)]],
  [S('湖西線','西日本旅客'), L([JKY,JKB],1974)],
- [S('大阪環状線','西日本旅客'), [...L([YMT],1973),...L([S('阪和線','西日本旅客')],1989),...L([S('関西空港線','西日本旅客')],1994),...L([YMS],2001)]],
+ [S('大阪環状線','西日本旅客'), [...L([YMTK],1973),...L([S('阪和線','西日本旅客')],1989),...L([S('関西空港線','西日本旅客')],1994),...L([YMS],2001)]],
  [YMT, [...L([S('大阪環状線','西日本旅客')],1973),...L([S('おおさか東線','西日本旅客')],2008)]],
  [S('阪和線','西日本旅客'), [...L([S('大阪環状線','西日本旅客')],1989),...L([S('関西空港線','西日本旅客')],1994)]],
  [S('関西空港線','西日本旅客'), L([S('阪和線','西日本旅客'),S('大阪環状線','西日本旅客')],1994)],
- [S('おおさか東線','西日本旅客'), L([YMT],2008)],
+ [S('おおさか東線','西日本旅客'), L([YMTO],2008)],
  // ---- 私鉄などの直通運転（追加分）
  [S('烏丸線','京都市'), L([KKP,NRK],1988)], [S('京都線','近畿日本'), L([S('烏丸線','京都市')],1988)],
  [S('泉北','泉北','南海'), L([NKH],1971)], [S('高野線','南海'), L([S('泉北','泉北','南海')],1971)],
@@ -581,8 +592,8 @@ const THRU=[
  [FK, [...L([TJP,SY,SIP],2008),...L([TOY,MM],2013)]],
  [YU, [...L([SY],1983),...L([TJP],1987),...L([SIP],1998)]],
  [TJ, [...L([YU],1987),...L([FK],2008),...L([TOY,MM],2013)]],
- [SI, [...L([YU],1998),...L([FK],2008),...L([TOY,MM],2013)]],
- [SY, [...L([YU],1983),...L([FK],2008),...L([TOY,MM],2013)]],
+ [SI, [...L([SY,YUK],1998),...L([FKK],2008),...L([TOY,MM],2013)]],
+ [SY, [...L([YUK],1994),...L([FKK],2008),...L([TOY,MM],2013)]],
  [MM, [...L([TOY],2004),...L([FK,TJP,SIP,SY],2013)]],
  [HB, [...L([ISK],1962),[TOYP,1964,2013],...L([NKP],2013)]],
  [HZ, [...L([DT],1978),...L([ISO],2003),...L([NKP],2006)]],
@@ -600,7 +611,7 @@ const THRU=[
  ...[QH,QA,QK].map(s=>[s, [...L([ASP,KO,KHP],1968),...L([HS],1991),...L([SB],2002),...L([KN],2010)]]),
  [HS, [...L([AS,KO,QHP],1991),...L([QA],1998)]], [SB, L([KHP,AS],2002)],
  [SJ, L([KWP,KS],1980)], [KW, L([SJ],1980)], [KS, L([SJ],1980)],
- [RK, L([SKY],2002)], [JA, [...L([RK],2002),...L(SOT,2019)]], [SKY, [...L([RK],2002),...L(SOT,2019)]],
+ [RK, L([SKY],2002)], [JA, [...L([RK],2002),...L([SNYJ,SOH],2019)]], [SKY, [...L([RK],2002),...L([SNYJ,SOH],2019)]],
  [S('本線','阪神電気'), L([S('本線','山陽電気')],1968)], [S('本線','山陽電気'), [...L([S('本線','阪神電気')],1968),[HKKP,1968,1998]]], [S('神戸線','阪急'), [[SYSP,1968,1998]]],
  [S('有馬線','神戸電'), []],
  [S('堺筋線','大阪市'), L([S('千里線','阪急'),HKJ],1969)], [S('千里線','阪急'), L([S('堺筋線','大阪市')],1969)], [S('京都線','阪急'), L([S('堺筋線','大阪市')],1969)],
@@ -866,14 +877,52 @@ function selectStation(i){
   _staDetailKey=''; updateStaDetail();
   const q=proj(r[8],r[7]); fitPoints([[q[0]-15,q[1]-15],[q[0]+15,q[1]+15]],0); draw();
 }
-function chainOrder(rows){ // 駅の位置から路線順を推定（両端の駅を決め、残りを最も遠回りにならない位置へ挿入）
+// 国の路線データの線形（線路の形）に沿って駅を並べる。枝分かれや途切れがある路線では null を返す
+function geoOrder(rows,ln,op,y){
+  if(!NET||rows.length<3) return null;
+  const key='go|'+y+'|'+ln+'|'+op+'|'+rows.length; const hit=MEMO.get(key); if(hit!==undefined) return hit;
+  const opOk=o=>fam(o)===op||op.includes(o)||o.includes(op);
+  const segs=[]; NET.lines.forEach(L=>{ if(!L[1].some(x=>x[0]===ln&&opOk(x[1])&&x[2].some(([a,b])=>a<=y&&y<=b))) return; const f=L[3], pts=[]; for(let j=0;j<f.length;j+=2) pts.push([f[j]*Math.cos(f[j+1]*Math.PI/180), f[j+1]]); if(pts.length>1) segs.push(pts); });
+  const fail=()=>{ MEMO.set(key,null); return null; };
+  if(!segs.length) return fail();
+  const nk=p=>Math.round(p[0]*3000)+','+Math.round(p[1]*3000);
+  const adj=new Map(); const addN=(k,e)=>{ if(!adj.has(k)) adj.set(k,[]); adj.get(k).push(e); };
+  segs.forEach((pts,i)=>{ addN(nk(pts[0]),i); addN(nk(pts[pts.length-1]),i); });
+  if([...adj.values()].some(v=>v.length>2)) return fail();
+  let start=[...adj.entries()].find(([k,v])=>v.length===1); start=start?start[0]:nk(segs[0][0]);
+  const used=new Set(), line=[]; let cur=start;
+  while(true){ const e=(adj.get(cur)||[]).find(i=>!used.has(i)); if(e===undefined) break; used.add(e); let pts=segs[e]; if(nk(pts[0])!==cur) pts=pts.slice().reverse(); if(line.length) pts=pts.slice(1); line.push(...pts); cur=nk(pts[pts.length-1]); }
+  if(used.size!==segs.length) return fail();
+  const cum=[0]; for(let j=1;j<line.length;j++) cum.push(cum[j-1]+Math.hypot(line[j][0]-line[j-1][0],line[j][1]-line[j-1][1]));
+  let bad=false;
+  const pos=rows.map(r=>{ const q=[r[7]*Math.cos(r[8]*Math.PI/180), r[8]]; let bd=Infinity,bs=0;
+    for(let j=1;j<line.length;j++){ const A=line[j-1],B=line[j]; const vx=B[0]-A[0],vy=B[1]-A[1]; const L2=vx*vx+vy*vy||1e-12; let t=((q[0]-A[0])*vx+(q[1]-A[1])*vy)/L2; t=Math.max(0,Math.min(1,t)); const px=A[0]+t*vx,py=A[1]+t*vy; const dd=Math.hypot(q[0]-px,q[1]-py); if(dd<bd){bd=dd;bs=cum[j-1]+t*Math.sqrt(L2);} }
+    if(bd>0.012) bad=true; return bs; });
+  if(bad) return fail();
+  const out=rows.map((r,i)=>[pos[i],r]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]); MEMO.set(key,out); return out;
+}
+function chainOrder(rows){ // 駅の位置から路線順を推定：いろいろな端の駅から「近い駅へ順に進む」並びを作り、区間の反転で磨いて、最も短いものを選ぶ
   if(rows.length<3) return rows;
-  const P2=rows.map(r=>[r[7]*Math.cos(r[8]*Math.PI/180), r[8]]);
-  const d=(a,b)=>Math.hypot(P2[a][0]-P2[b][0],P2[a][1]-P2[b][1]);
-  let a=0,b=0,best=-1; for(let i=0;i<rows.length;i++) for(let j=i+1;j<rows.length;j++){const v=d(i,j); if(v>best){best=v;a=i;b=j}}
-  const path=[a,b]; const rest=rows.map((_,i)=>i).filter(i=>i!==a&&i!==b).sort((x,y)=>Math.min(d(x,a),d(x,b))-Math.min(d(y,a),d(y,b)));
-  for(const s of rest){ let bi=1,bc=Infinity; for(let k=1;k<path.length;k++){const c=d(path[k-1],s)+d(s,path[k])-d(path[k-1],path[k]); if(c<bc){bc=c;bi=k}} path.splice(bi,0,s); }
-  return path.map(i=>rows[i]);
+  const key='co|'+rows.map(r=>r[9]).join(','); const hit=MEMO.get(key); if(hit) return hit;
+  const n=rows.length, P2=rows.map(r=>[r[7]*Math.cos(r[8]*Math.PI/180), r[8]]);
+  const D=[]; for(let a=0;a<n;a++){ D.push(new Float64Array(n)); for(let b=0;b<n;b++) D[a][b]=Math.hypot(P2[a][0]-P2[b][0],P2[a][1]-P2[b][1]); }
+  const len=p=>{let t=0;for(let j=1;j<p.length;j++)t+=D[p[j-1]][p[j]];return t;};
+  // 折り返し（来た方向へ戻る並び）には罰点を付けて、実際の線路に近い並びを選ぶ
+  const score=p=>{ let t=len(p); for(let j=1;j<p.length-1;j++){ const A=P2[p[j-1]],B=P2[p[j]],C=P2[p[j+1]]; const ux=B[0]-A[0],uy=B[1]-A[1],vx=C[0]-B[0],vy=C[1]-B[1]; const lu=Math.hypot(ux,uy),lv=Math.hypot(vx,vy); if(!lu||!lv) continue; const c=(ux*vx+uy*vy)/(lu*lv); if(c<0) t+= -c*Math.min(lu,lv)*2; } return t; };
+  let starts=[...Array(n).keys()];
+  if(n>60){ let a=0,b=0,bv=-1; for(let x=0;x<n;x++)for(let y=x+1;y<n;y++) if(D[x][y]>bv){bv=D[x][y];a=x;b=y;} starts=[a,b]; for(let k=0;k<n;k+=Math.ceil(n/24)) starts.push(k); }
+  let best=null, bl=Infinity;
+  for(const st of starts){
+    const used=new Uint8Array(n); const path=[st]; used[st]=1;
+    for(let k=1;k<n;k++){ const last=path[path.length-1]; let bi=-1,bd=Infinity; for(let x=0;x<n;x++) if(!used[x]&&D[last][x]<bd){bd=D[last][x];bi=x;} path.push(bi); used[bi]=1; }
+    let improved=true, it=0;
+    while(improved && it++<30){ improved=false;
+      for(let i=0;i<n-1;i++) for(let k=i+1;k<n;k++){
+        const dl=(i>0? D[path[i-1]][path[k]]-D[path[i-1]][path[i]] : 0) + (k<n-1? D[path[i]][path[k+1]]-D[path[k]][path[k+1]] : 0);
+        if(dl < -1e-9){ for(let a=i,b=k;a<b;a++,b--){const t=path[a];path[a]=path[b];path[b]=t;} improved=true; } } }
+    const l=score(path); if(l<bl){bl=l;best=path;}
+  }
+  const out=best.map(i=>rows[i]); MEMO.set(key,out); return out;
 }
 // ---- 入力の打ち間違いに近い路線名の候補（もしかして）
 function lev(a,b){ const m=a.length,n=b.length; if(!m) return n; if(!n) return m; let pr=Array.from({length:n+1},(_,j)=>j);
@@ -901,7 +950,7 @@ function renderLineStations(box){
   if(!groups.size){ const sg=suggestLines($('qline').value); box.innerHTML=`<div class="yr">${T(`路線（国土数値情報・${y}年）`,`Lines (${y})`)}</div>${sg.length?`<div class="empty" style="padding-bottom:6px">${T('もしかして：','Did you mean: ')}<span class="chips" style="display:inline-flex;margin-left:4px">${sg.map(c=>`<button class="stchip sugg" data-q="${esc(c.label)}">${esc(c.label)}<span class="kn">${esc(c.op)}</span></button>`).join('')}</span></div>`:''}<div class="empty">${T(`${y}年に営業していた、この名前の路線は見つかりませんでした。地図の時点を変えるか、別の名前で探してください。`,`No line with this name was in service in ${y}. Change the map date or try another name (line names are in Japanese, e.g. 小田急線, 山手線).`)}</div>`; return; }
   let html=`<div class="yr">${T(`路線と駅（国土数値情報・${y}年時点）${groups.size}路線`,`Lines and stations as of ${y}: ${groups.size} line${groups.size>1?'s':''}`)}</div>`;
   [...groups.entries()].slice(0,30).forEach(([k,idx])=>{
-    const [ln,op]=k.split('｜'); const rows=idx.map(i=>[...STA[i].slice(0,9),i]); const ord=ordered.has(k)?rows:chainOrder(rows);
+    const [ln,op]=k.split('｜'); const rows=idx.map(i=>[...STA[i].slice(0,9),i]); const ord=ordered.has(k)?rows:(geoOrder(rows,ln,op,y)||chainOrder(rows));
     const so=shortOp(op), lab=(so&&!ln.startsWith(so)&&!ln.includes('（')&&!/^JR/.test(so)&&!/^(JR|東武|西武|京王|小田急|東急|京急|京成|相鉄)/.test(ln)?so+' ':'')+ln;
     html+=`<div class="linebox"><div class="lt"><span class="t">${esc(lab)}</span> <span class="m">${op}・${ord.length}${T('駅',' stations')}</span></div><div class="chips">`+
       ord.map(r=>`<button class="stchip" data-s="${r[9]}">${rb(r)}</button>`).join('')+`</div></div>`;
@@ -918,7 +967,7 @@ function renderLineStations(box){
     html+=`<div class="yr" style="color:var(--thru)">${T(`乗り入れ先（直通運転）${pg.size}路線`,`Through-service partners: ${pg.size}`)}</div>`;
     html+=`<div class="note" style="padding:4px 2px">${T('乗り入れ先は直通列車が走る区間を表示しています。登録している直通運転は首都圏・関西・名古屋・福岡などの主なものです。','Shows the sections served by through trains. Only major through services (Tokyo, Kansai, Nagoya, Fukuoka areas, etc.) are registered.')}</div>`;
     if(!pg.size) html+=`<div class="empty">${T(`${y}年時点で、この路線からの主な直通運転先は登録されていません。`,`No major through services from this line are registered for ${y}.`)}</div>`;
-    [...pg.entries()].forEach(([k,{idx,p,ord:isOrd}])=>{ const [ln,op]=k.split('｜'); const rows=idx.map(i=>[...STA[i].slice(0,9),i]); const ord=isOrd?rows:chainOrder(rows);
+    [...pg.entries()].forEach(([k,{idx,p,ord:isOrd}])=>{ const [ln,op]=k.split('｜'); const rows=idx.map(i=>[...STA[i].slice(0,9),i]); const ord=isOrd?rows:(geoOrder(rows,ln,op,y)||chainOrder(rows));
       html+=`<div class="linebox thru"><div class="lt"><span class="t">${ln}</span> <span class="m">${op}・${ord.length}${T('駅',' stations')}・${T(`${p.via.l}から直通（${p.from===1950?'1950年以前':p.from+'年'}〜）`,`through from ${p.via.l} (${p.from===1950?'before 1950':p.from}–)`)}</span></div><div class="chips">`+
         ord.map(r=>`<button class="stchip" data-s="${r[9]}">${rb(r)}</button>`).join('')+`</div></div>`; });
   }
