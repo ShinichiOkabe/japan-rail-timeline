@@ -82,6 +82,8 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .when{font-family:var(--f-mono);font-size:1.35rem;font-weight:600;font-variant-numeric:tabular-nums}
 .when small{font-family:var(--f-body);font-size:12px;color:var(--muted);font-weight:400;margin-left:8px}
 input[type=range]{width:100%;accent-color:var(--open)}
+.tstep{display:flex;gap:6px;justify-content:center;margin-top:6px;flex-wrap:wrap}
+.tstep .btn{min-width:5.5em;font-variant-numeric:tabular-nums}
 .svgwrap{position:relative;border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:var(--sea);touch-action:none;margin-top:8px}
 svg#map{display:block;width:100%;height:min(68vh,640px);cursor:grab}
 svg#map.drag{cursor:grabbing}
@@ -154,6 +156,7 @@ a.pp:focus-visible{outline:2px solid var(--open);outline-offset:2px}
     </div>
   </div>
   <label class="f" for="t" style="margin-top:6px">地図の時点（この月末時点の路線網）<input type="range" id="t" min="0" max="1151" step="1"></label>
+  <div class="tstep" role="group" aria-label="地図の時点を動かす"><button class="btn" data-step="-12" id="ty_m">◀◀ 1年</button><button class="btn" data-step="-1" id="tm_m">◀ 1か月</button><button class="btn" data-step="1" id="tm_p">1か月 ▶</button><button class="btn" data-step="12" id="ty_p">1年 ▶▶</button></div>
   <div class="svgwrap">
     <svg id="map" role="img" aria-label="選択した時点の路線図"></svg>
     <div class="zoom"><button id="zin" aria-label="拡大">＋</button><button id="zout" aria-label="縮小">－</button></div>
@@ -258,7 +261,7 @@ const store = { get(k){try{return localStorage.getItem(k)}catch(e){return null}}
   const pres={'1950-01,2045-12':'All years','1950-01,1989-01':'Showa','1989-01,2019-04':'Heisei','2019-05,2026-11':'Reiwa (to date)','2026-12,2045-12':'Future plans'};
   document.querySelectorAll('[data-range]').forEach(b=>{ if(pres[b.dataset.range]) b.textContent=pres[b.dataset.range]; });
   const cnt=$('cnt').parentNode; cnt.lastChild.textContent=' entries';
-  set('#reset','Clear filters'); set('#fitres','Fit to results'); set('#fitall','All Japan'); set('#closed','Show closed lines'); set('#play','▶ Play');
+  set('#reset','Clear filters'); set('#ty_m','◀◀ 1 yr'); set('#tm_m','◀ 1 mo'); set('#tm_p','1 mo ▶'); set('#ty_p','1 yr ▶▶'); set('#fitres','Fit to results'); set('#fitall','All Japan'); set('#closed','Show closed lines'); set('#play','▶ Play');
   $('zin').setAttribute('aria-label','Zoom in'); $('zout').setAttribute('aria-label','Zoom out');
   const lg=document.querySelectorAll('.legend span'); const lt=['Lines in service in 1950','Lines opened after 1950','Closed lines','Plans (from the timeline)','Searched line','Through-service partner','Zoom in to see stations'];
   lg.forEach((sp,k)=>{ if(lt[k]==null) return; const i=sp.querySelector('i'); sp.textContent=lt[k]; if(i) sp.prepend(i); });
@@ -368,6 +371,14 @@ const NOW_IDX = ymToIdx('2026-11');
 $('t').value = NOW_IDX;
 const tYm = () => idxToYm(+$('t').value);
 $('t').addEventListener('input',()=>{ if(lineQ().q && !$('qsta').value.trim()) renderStations(); draw(); });
+// 1か月・1年ずつ動かすボタン（押し続けると連続で動く）
+document.querySelectorAll('.tstep [data-step]').forEach(b=>{
+  const go=()=>{ const t=$('t'); const v=Math.max(+t.min,Math.min(+t.max,+t.value+(+b.dataset.step))); if(v!==+t.value){ t.value=v; t.dispatchEvent(new Event('input')); } };
+  let tm=null, iv=null; const stop=()=>{ clearTimeout(tm); clearInterval(iv); tm=iv=null; };
+  b.addEventListener('pointerdown',e=>{ e.preventDefault(); go(); tm=setTimeout(()=>{ iv=setInterval(go,120); },450); });
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,stop));
+  b.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
+});
 let playing=null;
 $('play').onclick=()=>{ if(playing){clearInterval(playing);playing=null;$('play').textContent=T('▶ 再生','▶ Play');return}
   if(+$('t').value>=+$('t').max) $('t').value=0;
