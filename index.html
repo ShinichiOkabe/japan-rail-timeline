@@ -12,18 +12,18 @@
 :root{
   --bg:#f3f5f7; --panel:#ffffff; --fg:#16202a; --muted:#5b6672; --rule:#d9dee4;
   --open:#0e7a6a; --close:#b2432a; --plan:#b98100; --move:#5a5fb0; --ref:#b4bec8; --net:#55606c; --sel-line:#b98100; --hl:#c2185b; --thru:#3949ab; --sea:#dfe8ef;
-  --chip:#eef1f4; --sel:#0e7a6a1f; --land:#fbfcfd; --coast:#bcc7d1;
+  --chip:#eef1f4; --sel:#0e7a6a1f; --land:#fbfcfd; --coast:#bcc7d1; --warn-bg:#fff4d6; --warn-bd:#e0a800; --warn-fg:#5c3d00;
   --f-body:"BIZ UDPGothic","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0e1318; --panel:#161d24; --fg:#e4e9ee; --muted:#97a3af; --rule:#2a333d;
   --open:#3cb6a2; --close:#e2775b; --plan:#e3b143; --move:#9599e8; --ref:#3a4550; --net:#9aa6b2; --sel-line:#e3b143; --hl:#f06292; --thru:#8c9eff; --sea:#121a21;
-  --chip:#1f2830; --sel:#3cb6a22b; --land:#1c252e; --coast:#36434f; color-scheme:dark}}
+  --chip:#1f2830; --sel:#3cb6a22b; --land:#1c252e; --coast:#36434f; --warn-bg:#3a2c08; --warn-bd:#c9971c; --warn-fg:#ffe2a0; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0e1318; --panel:#161d24; --fg:#e4e9ee; --muted:#97a3af; --rule:#2a333d;
   --open:#3cb6a2; --close:#e2775b; --plan:#e3b143; --move:#9599e8; --ref:#3a4550; --net:#9aa6b2; --sel-line:#e3b143; --hl:#f06292; --thru:#8c9eff; --sea:#121a21;
-  --chip:#1f2830; --sel:#3cb6a22b; --land:#1c252e; --coast:#36434f; color-scheme:dark}
+  --chip:#1f2830; --sel:#3cb6a22b; --land:#1c252e; --coast:#36434f; --warn-bg:#3a2c08; --warn-bd:#c9971c; --warn-fg:#ffe2a0; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.6;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
@@ -95,6 +95,8 @@ svg#map.drag{cursor:grabbing}
 .detail .t{font-weight:700;font-size:15px}
 .note{font-size:12px;color:var(--muted);max-width:90ch}
 .empty{padding:24px 6px;color:var(--muted)}
+.empty.warn{background:var(--warn-bg);color:var(--warn-fg);border:1px solid var(--warn-bd);border-left:5px solid var(--warn-bd);border-radius:8px;padding:12px 14px;margin:8px 0}
+.empty.warn b{color:var(--warn-fg)}
 .langsw{margin-left:auto;display:flex;gap:4px}
 .langsw button{font:inherit;font-size:12.5px;border:1px solid var(--rule);background:var(--panel);color:var(--fg);border-radius:6px;padding:3px 10px;cursor:pointer}
 .langsw button[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
@@ -998,7 +1000,7 @@ function renderLineStations(box){
   // 運転系統名の一覧に駅がすべて含まれる元の路線名の一覧は重複になるので表示しない
   const vNames=[...ordered].map(k=>new Set(groups.get(k).map(i=>STA[i][0])));
   [...groups.keys()].forEach(k=>{ if(ordered.has(k)) return; const g=groups.get(k); if(vNames.some(s=>g.every(i=>s.has(STA[i][0])))) groups.delete(k); });
-  if(!groups.size){ const sg=suggestLines($('qline').value); box.innerHTML=`<div class="yr">${T(`路線（国土数値情報・${y}年）`,`Lines (${y})`)}</div>${sg.length?`<div class="empty" style="padding-bottom:6px">${T('もしかして：','Did you mean: ')}<span class="chips" style="display:inline-flex;margin-left:4px">${sg.map(c=>`<button class="stchip sugg" data-q="${esc(c.label)}">${esc(c.label)}<span class="kn">${esc(c.op)}</span></button>`).join('')}</span></div>`:''}<div class="empty">${T(`${y}年に営業していた、この名前の路線は見つかりませんでした。地図の時点を変えるか、別の名前で探してください。`,`No line with this name was in service in ${y}. Change the map date or try another name (line names are in Japanese, e.g. 小田急線, 山手線).`)}</div>`; return; }
+  if(!groups.size){ const sg=suggestLines($('qline').value); box.innerHTML=`<div class="yr">${T(`路線（国土数値情報・${y}年）`,`Lines (${y})`)}</div>${sg.length?`<div class="empty" style="padding-bottom:6px">${T('もしかして：','Did you mean: ')}<span class="chips" style="display:inline-flex;margin-left:4px">${sg.map(c=>`<button class="stchip sugg" data-q="${esc(c.label)}">${esc(c.label)}<span class="kn">${esc(c.op)}</span></button>`).join('')}</span></div>`:''}<div class="empty warn">${T(`${y}年に営業していた、この名前の路線は見つかりませんでした。地図の時点を変えるか、別の名前で探してください。`,`No line with this name was in service in ${y}. Change the map date or try another name (line names are in Japanese, e.g. 小田急線, 山手線).`)}</div>`; return; }
   let html=`<div class="yr">${T(`路線と駅（国土数値情報・${y}年時点）${groups.size}路線`,`Lines and stations as of ${y}: ${groups.size} line${groups.size>1?'s':''}`)}</div>`;
   [...groups.entries()].slice(0,30).forEach(([k,idx])=>{
     const [ln,op]=k.split('｜'); const rows=idx.map(i=>[...STA[i].slice(0,9),i]); const ord=ordered.has(k)?rows:(geoOrder(rows,ln,op,y)||chainOrder(rows));
@@ -1055,13 +1057,13 @@ function renderStations(){
   if(!hits.length && LQ.q){ // 路線を指定していて、その路線にこの駅が無いとき
     const other=staHits(qs,null), seen=new Map(); other.forEach(i=>{const r=STA[i]; const op=fam(r[2]), so=shortOp(op); const lab=(so&&!r[1].startsWith(so)&&!/^JR/.test(so)?so:'')+r[1]; if(!seen.has(lab)) seen.set(lab,[lab,so]);});
     const qv=$('qsta').value.trim().replace(/[<>&"]/g,''), lv=$('qline').value.trim().replace(/[<>&"]/g,'');
-    box.innerHTML=`<div class="empty nosta"><b>${T(`「${qv}」という駅は「${lv}」にはありません。`,`There is no station "${qv}" on "${lv}".`)}</b>`+
+    box.innerHTML=`<div class="empty warn nosta"><b>${T(`「${qv}」という駅は「${lv}」にはありません。`,`There is no station "${qv}" on "${lv}".`)}</b>`+
       (seen.size? `<div style="margin-top:6px">${T('この名前の駅がある路線（押すとその路線に切り替えます）：','Lines with a station of this name (tap to switch):')}</div><span class="chips" style="display:flex;flex-wrap:wrap;margin-top:4px">${[...seen.values()].slice(0,24).map(([l,o])=>`<button type="button" class="stchip sugg" data-q="${esc(l)}">${esc(l)}<span class="kn">${esc(o)}</span></button>`).join('')}</span>`
         : `<div style="margin-top:6px">${T('この名前を含む駅は、ほかの路線にも見つかりませんでした。','No station with this name was found on any line either.')}</div>`)+`</div>`;
     return; }
   box.innerHTML=`<div class="yr">${T(`駅（国土数値情報）${hits.length}件${hits.length>150?'（先頭150件を表示）':''}`,`Stations: ${hits.length}${hits.length>150?' (first 150 shown)':''}`)}</div>`+
     (hits.length? hits.slice(0,150).map(i=>{const r=STA[i];return `<div class="ev sta" data-s="${i}" tabindex="0" role="button"><div class="d">${r[6]===9999?T('営業中','Open'):T('廃止等','Closed')}</div><div><span class="t">${esc(sName(r))}</span>${kn(r)} <span class="s">${r[1]}</span></div><div class="m">${r[2]}　｜　${yrs(r)}</div></div>`}).join('')
-      : `<div class="empty">${T('この名前を含む駅は見つかりませんでした。','No station matches this name.')}</div>`);
+      : `<div class="empty warn">${T('この名前を含む駅は見つかりませんでした。','No station matches this name.')}</div>`);
 }
 $('stalist').addEventListener('click',ev=>{const sg=ev.target.closest('.sugg'); if(sg){ $('qline').value=sg.dataset.q; update(); if($('qsta').value.trim()) staAutoCenter(); else fitLine(); return; }const r=ev.target.closest('.sta,.stchip');if(r)selectStation(+r.dataset.s)});
 $('stalist').addEventListener('keydown',ev=>{if(ev.key==='Enter'){const r=ev.target.closest('.sta');if(r)selectStation(+r.dataset.s)}});
