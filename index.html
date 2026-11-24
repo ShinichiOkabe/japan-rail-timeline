@@ -302,7 +302,7 @@ const ALIAS=[['東京メトロ','東京地下鉄'],['大阪メトロ','大阪市
 const COMP=['横浜市','大阪市','東京地下鉄','東京都','旅客鉄道','東急電鉄','名古屋鉄道','近畿日本鉄道','京浜急行電鉄','相模鉄道','大阪市高速電気軌道','阪神電気鉄道','山陽電気鉄道','京成電鉄','阪急電鉄','南海電気鉄道','西日本鉄道','京阪電気鉄道','東武鉄道','西武鉄道','小田急電鉄','京王電鉄'];
 ALIAS.push(['ゆいれーる','沖縄都市モノレール'],['西部','西武鉄道'],['京阪神','京阪'],['小田休','小田急電鉄'],['京成電車','京成電鉄'],['阪神','阪神電気鉄道'],['山陽電鉄','山陽電気鉄道'],['京成','京成電鉄'],['阪急','阪急電鉄'],['南海','南海電気鉄道'],['西鉄','西日本鉄道'],['京阪','京阪電気鉄道'],['東武','東武鉄道'],['西武','西武鉄道'],['小田急','小田急電鉄'],['京王','京王電鉄']);
 let ALLNAMES=null;
-function lineQ(){ const q=norm($('qline').value); let alts=[q]; const HONSEN=new Set();
+function lineQ(str){ const q=norm(str!=null?str:$('qline').value); let alts=[q]; const HONSEN=new Set();
   ALIAS.forEach(([a,b])=>{ const na=norm(a), nb=norm(b); alts.forEach(x=>{ if(x.includes(na)&&!(nb.includes(na)&&x.includes(nb))){ const y=x.replace(na,nb); if(!alts.includes(y)) alts.push(y); } }); });
   // 「山陰本線」「中央本線」など：国のデータの路線名は「山陰線」「中央線」なので言い換える。〇〇本線はJRの呼び方なので、JRの路線に限る（大阪メトロ中央線などを出さない）
   if(typeof NET!=='undefined' && NET){ if(!ALLNAMES){ ALLNAMES=new Set(); NET.lines.forEach(l=>l[1].forEach(x=>ALLNAMES.add(norm(x[0])))); }
@@ -892,7 +892,48 @@ function applyFutureClosures(){
   });
 }
 const goneNow=g=>g && tYm()>=g;
-const evD=(e,pts)=>e.geomF ? e.geomF.map(f=>{ let d=''; for(let j=0;j<f.length;j+=2){ const q=proj(f[j+1],f[j]); d+=(j?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1); } return d; }).join('') : dpath(pts);
+// 年表の区間を、その年の路線網の実際の線路に沿って描く（求められなければ駅を直線で結ぶ）
+let _pcBox=null, _staByName=null;
+function evGeom(e){
+  if(e.geomF) return e.geomF; if(e._g!==undefined) return e._g; e._g=null;
+  if(!NET||!STA||!e.path||e.path.length<2||!e.ym) return null;
+  if(!_pcBox){ _pcBox=NET.lines.map(l=>{ const f=l[3]; let a=180,b=-180,c=90,d=-90; for(let j=0;j<f.length;j+=2){ a=Math.min(a,f[j]); b=Math.max(b,f[j]); c=Math.min(c,f[j+1]); d=Math.max(d,f[j+1]); } return [a,b,c,d]; });
+    _staByName=new Map(); STA.forEach(r=>{ if(!_staByName.has(r[0])) _staByName.set(r[0],[]); _staByName.get(r[0]).push(r); }); }
+  let y=+e.ym.slice(0,4); if(e.kind==='廃止') y-=1; y=Math.max(1950,Math.min(NET.Y1,y));
+  const Q=lineQ(e.line), kx=Math.cos(36*Math.PI/180), D=(a,b)=>Math.hypot((a[0]-b[0])*kx,a[1]-b[1]);
+  const names=e.path.filter(n=>n[0]!=='@');
+  const pos=names.map(n=>{ const rs=[...(_staByName.get(n)||[]),...(n.replace(/[（(].*$/,'')!==n?(_staByName.get(n.replace(/[（(].*$/,''))||[]):[])].filter(r=>staActive(r,y)); const m=rs.find(r=>lineMatch(r[1],r[2],Q))||rs[0];
+    if(m) return {q:[m[7],m[8]],r:0.006}; const v=ST[n]; const c=v?[v[1],v[0]]:null; return c?{q:c,r:0.015}:null; }).filter(Boolean);
+  if(pos.length<2) return null;
+  let bx=[180,-180,90,-90]; pos.forEach(({q})=>{ bx=[Math.min(bx[0],q[0]),Math.max(bx[1],q[0]),Math.min(bx[2],q[1]),Math.max(bx[3],q[1])]; });
+  const m=0.1+0.3*Math.max(bx[1]-bx[0],bx[3]-bx[2]); bx=[bx[0]-m,bx[1]+m,bx[2]-m,bx[3]+m];
+  const near=[]; NET.lines.forEach((l,i)=>{ const B=_pcBox[i]; if(B[1]<bx[0]||B[0]>bx[1]||B[3]<bx[2]||B[2]>bx[3]) return; if(!l[2].some(([a,b])=>a<=y&&y<=b)) return; near.push(l); });
+  const route=(pcsIn,detour,chs)=>{ const pcs=pcsIn.map(l=>l[3].slice());
+    const cut=({q,r},ch)=>{ const cs=[]; pcs.forEach((f,i)=>{ let bj=-1,bd=r; for(let j=0;j<f.length;j+=2){ const d=D([f[j],f[j+1]],q); if(d<bd){bd=d;bj=j/2;} } if(bj>=0) cs.push([bd,i,bj]); });
+      cs.sort((x,z)=>x[0]-z[0]); const c=cs[Math.min(ch,cs.length-1)]; if(!c) return null; const bi=c[1], bj=c[2];
+      const f=pcs[bi], n=f.length/2, node=[f[2*bj],f[2*bj+1]];
+      if(bj>0&&bj<n-1){ pcs.push(f.slice(2*bj)); pcs[bi]=f.slice(0,2*bj+2); } return node; };
+    const nodes=pos.map((p,k)=>cut(p,chs[k]||0)); if(nodes.some(x=>!x)) return null;
+    const key=q=>q[0].toFixed(4)+','+q[1].toFixed(4); const out=[];
+    for(let k=1;k<nodes.length;k++){
+      const adj=new Map(); pcs.forEach((f,i)=>{ const u=key([f[0],f[1]]), v=key([f[f.length-2],f[f.length-1]]); let len=0; for(let j=2;j<f.length;j+=2) len+=D([f[j-2],f[j-1]],[f[j],f[j+1]]);
+        [[u,v],[v,u]].forEach(([x,z])=>{ if(!adj.has(x)) adj.set(x,[]); adj.get(x).push([z,len,i]); }); });
+      const src=key(nodes[k-1]), dst=key(nodes[k]); if(src===dst) continue; const dist=new Map([[src,0]]), prev=new Map(), done=new Set();
+      while(true){ let u=null,du=1e9; dist.forEach((d,x)=>{ if(!done.has(x)&&d<du){du=d;u=x;} }); if(u===null||u===dst) break; done.add(u);
+        (adj.get(u)||[]).forEach(([v,w,i])=>{ if(du+w<(dist.get(v)??1e9)){ dist.set(v,du+w); prev.set(v,[u,i]); } }); }
+      if(!prev.has(dst)) return null;
+      if(dist.get(dst) > D(nodes[k-1],nodes[k])*detour+0.01) return null; // 遠回りすぎるのは誤り
+      for(let x=dst; x!==src; ){ const [u,i]=prev.get(x); out.push(pcs[i]); x=u; }
+    }
+    return out.length?out:null; };
+  const named=near.filter(l=>namesAt(l,y).some(x=>lineMatch(x[0],x[1],Q)));
+  // 駅の近くに複数の線があるときは、近い順にいくつか試す
+  const tries=[[]]; if(pos.length===2) for(let a=0;a<3;a++) for(let b=0;b<3;b++) if(a||b) tries.push([a,b]);
+  const run=(pc,dt)=>{ for(const t of tries){ const r=route(pc,dt,t); if(r) return r; } return null; };
+  e._g = (named.length&&run(named,4)) || run(near,1.8); // 路線名で見つからなければ、近くの線路をたどる（遠回りは不可）
+  return e._g; }
+const evD=(e,pts)=>evGeom(e) ? evGeom(e).map(f=>{ let d=''; for(let j=0;j<f.length;j+=2){ const q=proj(f[j+1],f[j]); d+=(j?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1); } return d; })
+.join('') : dpath(pts);
 let GONE_YMS=[]; const gk=()=>{ const t=tYm(); return GONE_YMS.filter(g=>t>=g).length; }; // 2025年より後の廃止のうち、表示中の年月までに済んだ数（キャッシュの区別用）
 function staActive(r,y){ const e=r[6]===9999?9999:r[6]; if(r.gone && y>=NET.Y1 && goneNow(r.gone)) return false; return r[5]<=y && y<=e; }
 function drawStations(){
