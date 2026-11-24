@@ -473,6 +473,39 @@ async function loadLand(){
     if(!n) throw new Error('empty');
     $('landnote').textContent='海岸線：mledoze/countries（ODbL）';
   }catch(err){ $('landnote').textContent='海岸線データを読み込めなかったため、陸地を表示していません。'; }
+  loadLand10m();
+}
+// 詳しい海岸線（Natural Earth 1:10m、world-atlas の TopoJSON）。読み込めたら粗い輪郭と差し替える
+function landRing(ring){ let minLat=90,maxLat=-90,minLon=180,maxLon=-180;
+  for(const [lo,la] of ring){ if(la<minLat)minLat=la; if(la>maxLat)maxLat=la; if(lo<minLon)minLon=lo; if(lo>maxLon)maxLon=lo; }
+  if(maxLat<28 && (minLon<126.9 || maxLon>128.7 || minLat<25.9)) return false; if(maxLat>=28 && minLat<28) return false; return true; }
+function topoRings(topo, geom){ // TopoJSON を経度・緯度の輪の配列に戻す（外周のみ）
+  const tf=topo.transform, arcs=topo.arcs.map(a=>{ let x=0,y=0; return a.map(p=>{ if(tf){ x+=p[0]; y+=p[1]; return [x*tf.scale[0]+tf.translate[0], y*tf.scale[1]+tf.translate[1]]; } return p; }); });
+  const ring=ids=>{ const out=[]; ids.forEach((i,k)=>{ const a=i<0?arcs[~i].slice().reverse():arcs[i]; (k?a.slice(1):a).forEach(p=>out.push(p)); }); return out; };
+  const polys = geom.type==='Polygon' ? [geom.arcs] : geom.type==='MultiPolygon' ? geom.arcs : [];
+  return polys.map(pl=>ring(pl[0])); }
+async function loadLand10m(){
+  try{
+    const m = await import('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-10m.json/+esm');
+    const topo = m.default || m; const geoms = topo.objects.countries.geometries;
+    const jp = geoms.find(g=>String(g.id)==='392' || (g.properties&&g.properties.name==='Japan')); if(!jp) return;
+    let rings=null;
+    try{ // 公式の TopoJSON 変換ライブラリで経度・緯度に戻す（読み込めなければ自前の変換）
+      const tc = await import('https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/+esm');
+      const f = tc.feature(topo, jp), g=f.geometry;
+      const polys = g.type==='Polygon' ? [g.coordinates] : g.type==='MultiPolygon' ? g.coordinates : [];
+      rings = polys.map(pl=>pl[0]);
+    }catch(e){ rings = topoRings(topo, jp); }
+    const els=[];
+    rings.forEach(r=>{ if(!r||r.length<4||!landRing(r)) return;
+      const el=document.createElementNS(NS,'path'); // 島ごとに別の図形にする（重なりで穴が開かないように）
+      el.setAttribute('d','M'+r.map(([lo,la])=>{const q=proj(la,lo);return q[0].toFixed(2)+' '+q[1].toFixed(2)}).join('L')+'Z');
+      el.setAttribute('fill','var(--land)'); el.setAttribute('stroke','var(--coast)'); el.setAttribute('stroke-width','1');
+      el.setAttribute('vector-effect','non-scaling-stroke'); el.style.pointerEvents='none'; els.push(el); });
+    if(els.length<50) return; // 詳しいデータとして不十分なら差し替えない
+    gLand.replaceChildren(...els);
+    $('landnote').textContent=T('海岸線：Natural Earth 1:10m（パブリックドメイン、world-atlas）','Coastline: Natural Earth 1:10m (public domain, via world-atlas)');
+  }catch(err){ /* 粗い輪郭のまま */ }
 }
 const dpath = p => p.map((s,i)=>(i?'L':'M')+P[s][0].toFixed(1)+' '+P[s][1].toFixed(1)).join('');
 // ---- 国土数値情報（鉄道時系列）による実際の路線網
