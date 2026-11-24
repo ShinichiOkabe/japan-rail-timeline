@@ -95,6 +95,8 @@ svg#map.drag{cursor:grabbing}
 .detail .t{font-weight:700;font-size:15px}
 .note{font-size:12px;color:var(--muted);max-width:90ch}
 .empty{padding:24px 6px;color:var(--muted)}
+.lnk{color:var(--thru);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.lnk:hover{opacity:.75}
 .empty.warn{background:var(--warn-bg);color:var(--warn-fg);border:1px solid var(--warn-bd);border-left:5px solid var(--warn-bd);border-radius:8px;padding:12px 14px;margin:8px 0}
 .empty.warn b{color:var(--warn-fg)}
 .langsw{margin-left:auto;display:flex;gap:4px}
@@ -1155,10 +1157,20 @@ function renderStations(){
         : `<div style="margin-top:6px">${T('この名前を含む駅は、ほかの路線にも見つかりませんでした。','No station with this name was found on any line either.')}</div>`)+`</div>`;
     return; }
   box.innerHTML=`<div class="yr">${T(`駅（国土数値情報）${hits.length}件${hits.length>150?'（先頭150件を表示）':''}`,`Stations: ${hits.length}${hits.length>150?' (first 150 shown)':''}`)}</div>`+
-    (hits.length? hits.slice(0,150).map(i=>{const r=STA[i];return `<div class="ev sta" data-s="${i}" tabindex="0" role="button"><div class="d">${r[6]===9999?T('営業中','Open'):T('廃止等','Closed')}</div><div><span class="t">${esc(sName(r))}</span>${kn(r)} <span class="s">${r[1]}</span></div><div class="m">${r[2]}　｜　${yrs(r)}</div></div>`}).join('')
+    (hits.length? hits.slice(0,150).map(i=>{const r=STA[i];return `<div class="ev sta" data-s="${i}" tabindex="0" role="button"><div class="d">${r[6]===9999?T('営業中','Open'):T('廃止等','Closed')}</div><div><span class="t">${esc(sName(r))}</span>${kn(r)} <span class="s lnk" data-s="${i}" role="button" tabindex="0" title="${T('この路線を地図に表示','Show this line on the map')}">${esc(r[1])}</span></div><div class="m">${r[2]}　｜　${yrs(r)}</div></div>`}).join('')
       : `<div class="empty warn">${T('この名前を含む駅は見つかりませんでした。','No station matches this name.')}</div>`);
 }
-$('stalist').addEventListener('click',ev=>{const sg=ev.target.closest('.sugg'); if(sg){ $('qline').value=sg.dataset.q; update(); if($('qsta').value.trim()) staAutoCenter(); else fitLine(); return; }const r=ev.target.closest('.sta,.stchip');if(r)selectStation(+r.dataset.s)});
+// 駅の一覧の路線名を押したら、その路線を地図に表示する。廃止などでその年月に無いときは、存続していた年月に移る
+function showLineOf(i){ const r=STA[i]; if(!r) return; const so=shortOp(fam(r[2]));
+  const jr=/^JR|国鉄|国有/.test(so)||/旅客鉄道|国有鉄道/.test(r[2]);
+  $('qline').value=(so&&!jr&&!r[1].startsWith(so)?so:'')+r[1];
+  // 同じ路線（名前と事業者）の駅がいた期間全体で判断する
+  const fo=fam(r[2]); let a0=9999,a1=0; STA.forEach(x=>{ if(x[1]===r[1]&&fam(x[2])===fo){ a0=Math.min(a0,x[5]); a1=Math.max(a1,x[6]===9999?9999:x[6]); } });
+  const y=+tYm().slice(0,4);
+  if(y>a1||y<a0){ const ty=y>a1?a1:a0; $('t').value=ymToIdx(Math.min(ty,NET.Y1)+'-12'); }
+  selSta=r; _staDetailKey=''; update(); fitLine(); }
+$('stalist').addEventListener('keydown',ev=>{ const ln=ev.target.closest('.lnk'); if(ln&&(ev.key==='Enter'||ev.key===' ')){ ev.preventDefault(); ev.stopPropagation(); showLineOf(+ln.dataset.s); } },true);
+$('stalist').addEventListener('click',ev=>{const ln=ev.target.closest('.lnk'); if(ln){ ev.stopPropagation(); showLineOf(+ln.dataset.s); return; } const sg=ev.target.closest('.sugg'); if(sg){ $('qline').value=sg.dataset.q; update(); if($('qsta').value.trim()) staAutoCenter(); else fitLine(); return; }const r=ev.target.closest('.sta,.stchip');if(r)selectStation(+r.dataset.s)});
 $('stalist').addEventListener('keydown',ev=>{if(ev.key==='Enter'){const r=ev.target.closest('.sta');if(r)selectStation(+r.dataset.s)}});
 $('closed').onclick=()=>{showClosed=!showClosed;$('closed').setAttribute('aria-pressed',showClosed);drawNet()};
 function netClick(i){
