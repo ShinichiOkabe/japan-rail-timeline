@@ -1127,7 +1127,12 @@ function staHits(qs, LQ){ const a=+($('from').value||'1950-01').slice(0,4), z=+(
   const qr=qs.replace(/[^a-z]/g,''), rq=qr.length>=2&&/^[a-z\s'-]+$/.test(qs);
   const hits=[]; STA.forEach((r,i)=>{ if(!norm(r[0]).includes(qs) && !(kq && toHira(yomi(r)).includes(qh)) && !(rq && rom(yomi(r)).toLowerCase().replace(/[^a-z]/g,'').includes(qr))) return; if(LQ && !lineMatch(r[1],r[2],LQ)) return;
     const e=r[6]===9999?9999:r[6]; if(e<a||r[5]>z) return; hits.push(i); });
-  hits.sort((i,j)=>(norm(STA[i][0])!==qs&&yomi(STA[i])!==qh)-(norm(STA[j][0])!==qs&&yomi(STA[j])!==qh) || STA[i][5]-STA[j][5]);
+  // 並び順：①駅名が一致する駅 → 似た名前の駅。②同じ駅名はまとめて続けて出す（駅名どうしは、営業中の駅がある名前 → 廃止が新しい名前の順）
+  // ③同じ駅名の中では、営業中 → 廃止した年が新しい順
+  const ex=i=>(norm(STA[i][0])===qs||yomi(STA[i])===qh)?0:1, end=i=>STA[i][6]===9999?9999:STA[i][6];
+  const grp=new Map(); hits.forEach(i=>{ const k=ex(i)+'|'+STA[i][0]; const g=grp.get(k)||{best:0}; g.best=Math.max(g.best,end(i)); grp.set(k,g); });
+  const gk_=i=>ex(i)+'|'+STA[i][0];
+  hits.sort((i,j)=>ex(i)-ex(j) || grp.get(gk_(j)).best-grp.get(gk_(i)).best || (STA[i][0]<STA[j][0]?-1:STA[i][0]>STA[j][0]?1:0) || end(j)-end(i) || STA[j][5]-STA[i][5]);
   return hits; }
 // 駅名を入力したら、その駅を地図の中心にする（路線を指定していればその路線の駅。同じ名前が離れた場所に複数あるときは動かさない）
 function staAutoCenter(){ if(!STA) return; const qs=norm($('qsta').value); if(!qs) return; const LQ=lineQ();
