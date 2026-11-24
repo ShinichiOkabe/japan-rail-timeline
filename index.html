@@ -301,18 +301,18 @@ function lineQ(){ const q=norm($('qline').value); let alts=[q]; const HONSEN=new
   // 「山陰本線」「中央本線」など：国のデータの路線名は「山陰線」「中央線」なので言い換える。〇〇本線はJRの呼び方なので、JRの路線に限る（大阪メトロ中央線などを出さない）
   if(typeof NET!=='undefined' && NET){ if(!ALLNAMES){ ALLNAMES=new Set(); NET.lines.forEach(l=>l[1].forEach(x=>ALLNAMES.add(norm(x[0])))); }
     alts.slice().forEach(x=>{ if(x.length>3&&x.endsWith('本線')){ const y=x.slice(0,-2)+'線'; if(ALLNAMES.has(y)){ const z=COMP.some(c=>y.startsWith(norm(c)))?y:norm('旅客鉄道')+y; if(!alts.includes(z)) alts.push(z); HONSEN.add(z); } } }); }
-  const more=[]; alts.forEach(x=>{ if(x.length>2&&x.endsWith('線')&&!HONSEN.has(x)) more.push(x.slice(0,-1)); }); alts=alts.concat(more).filter(x=>x!==q&&x.length>=2);
+  const more=[]; alts.forEach(x=>{ if(x.length>2&&x.endsWith('線')&&!HONSEN.has(x)) more.push(x.slice(0,-1)); }); const trim=new Set(more); alts=alts.concat(more).filter(x=>x!==q&&x.length>=2);
   const shorts=new Set(ALIAS.map(([a])=>norm(a))); alts=alts.filter(x=>!shorts.has(x)); // 略称そのものは誤一致しやすいので、正式名に置き換えた形だけで探す
   // その名前の路線が実在するとき（例：京王線）は、会社全体（京王電鉄の全路線）では探さない
   if(typeof NET!=='undefined' && NET){ if(!ALLNAMES){ ALLNAMES=new Set(); NET.lines.forEach(l=>l[1].forEach(x=>ALLNAMES.add(norm(x[0])))); }
     if([...ALLNAMES].some(n=>nameHas(n,q))) alts=alts.filter(x=>!COMP.some(c=>x===norm(c)||x===norm(c)+'線')); }
-  return {q,alts}; }
+  return {q,alts,trim}; }
 const GENERIC=['新幹線','本線','支線','モノレール','ライナー','鋼索線','ケーブル','新交通','地下鉄'];
 function nameHas(a,q){ if(GENERIC.some(g=>q===norm(g))) return a.includes(q); let i=a.indexOf(q); while(i>=0){ if(i===0||/[0-9０-９a-z線号(（)）・]/.test(a[i-1])) return true; i=a.indexOf(q,i+1); } return false; }
 function lineMatch(text, opText, Q){ if(!Q.q) return true; const a=norm(text), o=norm(opText||''); const all=a+'｜'+o;
   if(nameHas(a,Q.q)||o.includes(Q.q)) return true;
   const FULLS=new Set(ALIAS.map(([,b])=>norm(b)).concat(COMP.map(norm)));
-  return Q.alts.some(x=>{ const c=COMP_L.find(c=>x.startsWith(c)&&x.length>c.length); if(!c) return ((x.length>=3||FULLS.has(x))&&o.includes(x))||nameHas(a,x)||(FULLS.has(x)&&o.length>=2&&x.includes(o)); const rest=x.slice(c.length); return (o.includes(c)||(o.length>=2&&c.includes(o))||(OP_EQ[c]||[]).some(k=>o.includes(k)))&&(nameHas(a,rest)||(rest.length>1&&rest.endsWith('線')&&a===rest)); }); }
+  return Q.alts.some(x=>{ if(Q.trim&&Q.trim.has(x)&&a.includes('新幹線')&&!Q.q.includes('新幹')) return false; /* 「東海道線」で東海道新幹線を拾わない */ const c=COMP_L.find(c=>x.startsWith(c)&&x.length>c.length); if(!c) return ((x.length>=3||FULLS.has(x))&&o.includes(x))||nameHas(a,x)||(FULLS.has(x)&&o.length>=2&&x.includes(o)); const rest=x.slice(c.length); return (o.includes(c)||(o.length>=2&&c.includes(o))||(OP_EQ[c]||[]).some(k=>o.includes(k)))&&(nameHas(a,rest)||(rest.length>1&&rest.endsWith('線')&&a===rest)); }); }
 const COMP_L=COMP.slice().sort((a,b)=>b.length-a.length); // 長い社名から先に照合（「大阪市」より「大阪市高速電気軌道」）
 const OP_EQ={'旅客鉄道':['jr','国鉄','国有鉄道'],'大阪市高速電気軌道':['osakametro','大阪市'],'東京地下鉄':['東京メトロ','営団','帝都高速度']};
 const _NC=new Map();
@@ -1025,24 +1025,45 @@ function renderLineStations(box){
   html+=`<div class="note" style="padding:4px 2px">${T('駅の並びは位置から推定した概略で、支線がある路線では前後することがあります。','Station order is estimated from positions and may be out of order on lines with branches.')}</div>`;
   box.innerHTML=html;
 }
+function staHits(qs, LQ){ const a=+($('from').value||'1950-01').slice(0,4), z=+($('to').value||'2045-12').slice(0,4);
+  const qh=toHira(qs), kq=/^[\u3041-\u309f\u30fcー]+$/.test(qh);
+  const qr=qs.replace(/[^a-z]/g,''), rq=qr.length>=2&&/^[a-z\s'-]+$/.test(qs);
+  const hits=[]; STA.forEach((r,i)=>{ if(!norm(r[0]).includes(qs) && !(kq && toHira(yomi(r)).includes(qh)) && !(rq && rom(yomi(r)).toLowerCase().replace(/[^a-z]/g,'').includes(qr))) return; if(LQ && !lineMatch(r[1],r[2],LQ)) return;
+    const e=r[6]===9999?9999:r[6]; if(e<a||r[5]>z) return; hits.push(i); });
+  hits.sort((i,j)=>(norm(STA[i][0])!==qs&&yomi(STA[i])!==qh)-(norm(STA[j][0])!==qs&&yomi(STA[j])!==qh) || STA[i][5]-STA[j][5]);
+  return hits; }
+// 駅名を入力したら、その駅を地図の中心にする（路線を指定していればその路線の駅。同じ名前が離れた場所に複数あるときは動かさない）
+function staAutoCenter(){ if(!STA) return; const qs=norm($('qsta').value); if(!qs) return; const LQ=lineQ();
+  const hits=staHits(qs, LQ.q?LQ:null); if(!hits.length){ if(selSta){ selSta=null; _staDetailKey=''; $('detail').innerHTML=`<span class="note">${T('一覧の行か地図の線を選ぶと詳細を表示します。','Select a row or a line on the map to see details.')}</span>`; draw(); } return; }
+  const qh=toHira(qs), y=netYear();
+  let cand=hits.filter(i=>norm(STA[i][0])===qs||yomi(STA[i])===qh);
+  if(!cand.length){ const names=new Set(hits.map(i=>STA[i][0])); if(names.size!==1) return; cand=hits; }
+  const lon=STA[cand[0]][7], lat=STA[cand[0]][8];
+  if(!LQ.q && cand.some(i=>Math.abs(STA[i][7]-lon)+Math.abs(STA[i][8]-lat)>0.05)) return;
+  cand.sort((i,j)=>(staActive(STA[j],y)?1:0)-(staActive(STA[i],y)?1:0) || STA[j][6]-STA[i][6]);
+  selectStation(cand[0]); }
+let staTimer=null; $('qsta').addEventListener('input',ev=>{ clearTimeout(staTimer); if(ev.isComposing) return; staTimer=setTimeout(staAutoCenter,700); });
+$('qsta').addEventListener('compositionend',()=>{ clearTimeout(staTimer); staTimer=setTimeout(staAutoCenter,700); });
 function renderStations(){
   const box=$('stalist'); const qs=norm($('qsta').value); box.innerHTML='';
   computeLineHit();
   if(!STA){ box.hidden=true; return; }
   if(!qs && lineQ().q){ box.hidden=false; renderLineStations(box); return; }
   if(!qs){ box.hidden=true; return; }
-  const LQ=lineQ(), a=+($('from').value||'1950-01').slice(0,4), z=+($('to').value||'2045-12').slice(0,4);
-  const qh=toHira(qs), kq=/^[\u3041-\u309f\u30fcー]+$/.test(qh);
-  const qr=qs.replace(/[^a-z]/g,''), rq=qr.length>=2&&/^[a-z\s'-]+$/.test(qs);
-  const hits=[]; STA.forEach((r,i)=>{ if(!norm(r[0]).includes(qs) && !(kq && toHira(yomi(r)).includes(qh)) && !(rq && rom(yomi(r)).toLowerCase().replace(/[^a-z]/g,'').includes(qr))) return; if(LQ.q && !lineMatch(r[1],r[2],LQ)) return;
-    const e=r[6]===9999?9999:r[6]; if(e<a||r[5]>z) return; hits.push(i); });
-  hits.sort((i,j)=>(norm(STA[i][0])!==qs&&yomi(STA[i])!==qh)-(norm(STA[j][0])!==qs&&yomi(STA[j])!==qh) || STA[i][5]-STA[j][5]);
+  const LQ=lineQ(); const hits=staHits(qs, LQ.q?LQ:null);
   box.hidden=false;
+  if(!hits.length && LQ.q){ // 路線を指定していて、その路線にこの駅が無いとき
+    const other=staHits(qs,null), seen=new Map(); other.forEach(i=>{const r=STA[i]; const op=fam(r[2]), so=shortOp(op); const lab=(so&&!r[1].startsWith(so)&&!/^JR/.test(so)?so:'')+r[1]; if(!seen.has(lab)) seen.set(lab,[lab,so]);});
+    const qv=$('qsta').value.trim().replace(/[<>&"]/g,''), lv=$('qline').value.trim().replace(/[<>&"]/g,'');
+    box.innerHTML=`<div class="empty nosta"><b>${T(`「${qv}」という駅は「${lv}」にはありません。`,`There is no station "${qv}" on "${lv}".`)}</b>`+
+      (seen.size? `<div style="margin-top:6px">${T('この名前の駅がある路線（押すとその路線に切り替えます）：','Lines with a station of this name (tap to switch):')}</div><span class="chips" style="display:flex;flex-wrap:wrap;margin-top:4px">${[...seen.values()].slice(0,24).map(([l,o])=>`<button type="button" class="stchip sugg" data-q="${esc(l)}">${esc(l)}<span class="kn">${esc(o)}</span></button>`).join('')}</span>`
+        : `<div style="margin-top:6px">${T('この名前を含む駅は、ほかの路線にも見つかりませんでした。','No station with this name was found on any line either.')}</div>`)+`</div>`;
+    return; }
   box.innerHTML=`<div class="yr">${T(`駅（国土数値情報）${hits.length}件${hits.length>150?'（先頭150件を表示）':''}`,`Stations: ${hits.length}${hits.length>150?' (first 150 shown)':''}`)}</div>`+
     (hits.length? hits.slice(0,150).map(i=>{const r=STA[i];return `<div class="ev sta" data-s="${i}" tabindex="0" role="button"><div class="d">${r[6]===9999?T('営業中','Open'):T('廃止等','Closed')}</div><div><span class="t">${esc(sName(r))}</span>${kn(r)} <span class="s">${r[1]}</span></div><div class="m">${r[2]}　｜　${yrs(r)}</div></div>`}).join('')
       : `<div class="empty">${T('この名前を含む駅は見つかりませんでした。','No station matches this name.')}</div>`);
 }
-$('stalist').addEventListener('click',ev=>{const sg=ev.target.closest('.sugg'); if(sg){ $('qline').value=sg.dataset.q; update(); fitLine(); return; }const r=ev.target.closest('.sta,.stchip');if(r)selectStation(+r.dataset.s)});
+$('stalist').addEventListener('click',ev=>{const sg=ev.target.closest('.sugg'); if(sg){ $('qline').value=sg.dataset.q; update(); if($('qsta').value.trim()) staAutoCenter(); else fitLine(); return; }const r=ev.target.closest('.sta,.stchip');if(r)selectStation(+r.dataset.s)});
 $('stalist').addEventListener('keydown',ev=>{if(ev.key==='Enter'){const r=ev.target.closest('.sta');if(r)selectStation(+r.dataset.s)}});
 $('closed').onclick=()=>{showClosed=!showClosed;$('closed').setAttribute('aria-pressed',showClosed);drawNet()};
 function netClick(i){
