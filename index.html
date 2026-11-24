@@ -296,12 +296,12 @@ const ALIAS=[['東京メトロ','東京地下鉄'],['大阪メトロ','大阪市
 const COMP=['横浜市','大阪市','東京地下鉄','東京都','旅客鉄道','東急電鉄','名古屋鉄道','近畿日本鉄道','京浜急行電鉄','相模鉄道','大阪市高速電気軌道','阪神電気鉄道','山陽電気鉄道','京成電鉄','阪急電鉄','南海電気鉄道','西日本鉄道','京阪電気鉄道','東武鉄道','西武鉄道','小田急電鉄','京王電鉄'];
 ALIAS.push(['ゆいれーる','沖縄都市モノレール'],['西部','西武鉄道'],['京阪神','京阪'],['小田休','小田急電鉄'],['京成電車','京成電鉄'],['阪神','阪神電気鉄道'],['山陽電鉄','山陽電気鉄道'],['京成','京成電鉄'],['阪急','阪急電鉄'],['南海','南海電気鉄道'],['西鉄','西日本鉄道'],['京阪','京阪電気鉄道'],['東武','東武鉄道'],['西武','西武鉄道'],['小田急','小田急電鉄'],['京王','京王電鉄']);
 let ALLNAMES=null;
-function lineQ(){ const q=norm($('qline').value); let alts=[q];
+function lineQ(){ const q=norm($('qline').value); let alts=[q]; const HONSEN=new Set();
   ALIAS.forEach(([a,b])=>{ const na=norm(a), nb=norm(b); alts.forEach(x=>{ if(x.includes(na)&&!(nb.includes(na)&&x.includes(nb))){ const y=x.replace(na,nb); if(!alts.includes(y)) alts.push(y); } }); });
-  // 「山陰本線」「東海道本線」など：国のデータの路線名は「山陰線」「東海道線」なので、その名前の路線があれば言い換える
+  // 「山陰本線」「中央本線」など：国のデータの路線名は「山陰線」「中央線」なので言い換える。〇〇本線はJRの呼び方なので、JRの路線に限る（大阪メトロ中央線などを出さない）
   if(typeof NET!=='undefined' && NET){ if(!ALLNAMES){ ALLNAMES=new Set(); NET.lines.forEach(l=>l[1].forEach(x=>ALLNAMES.add(norm(x[0])))); }
-    alts.slice().forEach(x=>{ if(x.length>3&&x.endsWith('本線')){ const y=x.slice(0,-2)+'線'; if(ALLNAMES.has(y)&&!alts.includes(y)) alts.push(y); } }); }
-  const more=[]; alts.forEach(x=>{ if(x.length>2&&x.endsWith('線')) more.push(x.slice(0,-1)); }); alts=alts.concat(more).filter(x=>x!==q&&x.length>=2);
+    alts.slice().forEach(x=>{ if(x.length>3&&x.endsWith('本線')){ const y=x.slice(0,-2)+'線'; if(ALLNAMES.has(y)){ const z=COMP.some(c=>y.startsWith(norm(c)))?y:norm('旅客鉄道')+y; if(!alts.includes(z)) alts.push(z); HONSEN.add(z); } } }); }
+  const more=[]; alts.forEach(x=>{ if(x.length>2&&x.endsWith('線')&&!HONSEN.has(x)) more.push(x.slice(0,-1)); }); alts=alts.concat(more).filter(x=>x!==q&&x.length>=2);
   const shorts=new Set(ALIAS.map(([a])=>norm(a))); alts=alts.filter(x=>!shorts.has(x)); // 略称そのものは誤一致しやすいので、正式名に置き換えた形だけで探す
   // その名前の路線が実在するとき（例：京王線）は、会社全体（京王電鉄の全路線）では探さない
   if(typeof NET!=='undefined' && NET){ if(!ALLNAMES){ ALLNAMES=new Set(); NET.lines.forEach(l=>l[1].forEach(x=>ALLNAMES.add(norm(x[0])))); }
@@ -312,7 +312,9 @@ function nameHas(a,q){ if(GENERIC.some(g=>q===norm(g))) return a.includes(q); le
 function lineMatch(text, opText, Q){ if(!Q.q) return true; const a=norm(text), o=norm(opText||''); const all=a+'｜'+o;
   if(nameHas(a,Q.q)||o.includes(Q.q)) return true;
   const FULLS=new Set(ALIAS.map(([,b])=>norm(b)).concat(COMP.map(norm)));
-  return Q.alts.some(x=>{ const c=COMP.find(c=>x.startsWith(c)&&x.length>c.length); if(!c) return ((x.length>=3||FULLS.has(x))&&o.includes(x))||nameHas(a,x)||(FULLS.has(x)&&o.length>=2&&x.includes(o)); const rest=x.slice(c.length); return (o.includes(c)||(o.length>=2&&c.includes(o)))&&(nameHas(a,rest)||(rest.length>1&&rest.endsWith('線')&&a===rest)); }); }
+  return Q.alts.some(x=>{ const c=COMP_L.find(c=>x.startsWith(c)&&x.length>c.length); if(!c) return ((x.length>=3||FULLS.has(x))&&o.includes(x))||nameHas(a,x)||(FULLS.has(x)&&o.length>=2&&x.includes(o)); const rest=x.slice(c.length); return (o.includes(c)||(o.length>=2&&c.includes(o))||(OP_EQ[c]||[]).some(k=>o.includes(k)))&&(nameHas(a,rest)||(rest.length>1&&rest.endsWith('線')&&a===rest)); }); }
+const COMP_L=COMP.slice().sort((a,b)=>b.length-a.length); // 長い社名から先に照合（「大阪市」より「大阪市高速電気軌道」）
+const OP_EQ={'旅客鉄道':['jr','国鉄','国有鉄道'],'大阪市高速電気軌道':['osakametro','大阪市'],'東京地下鉄':['東京メトロ','営団','帝都高速度']};
 const _NC=new Map();
 const norm = s => { s=s||''; let v=_NC.get(s); if(v===undefined){ v=s.normalize('NFKC').toLowerCase().replace(/[ヶケ]/g,'ケ').replace(/\s/g,''); if(_NC.size>60000) _NC.clear(); _NC.set(s,v); } return v; };
 function filtered(){
