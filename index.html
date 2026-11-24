@@ -449,6 +449,17 @@ svg.append(oki,gLand,gEv,gHi,gLab); // 沖縄の枠は一番下（路線・駅�
 loadLand();
 // ---- 海岸線（mledoze/countries の日本の輪郭データ、経度・緯度のGeoJSON）
 async function loadLand(){
+  // まず同じ場所に置いた詳しい海岸線（land.json：Natural Earth 1:10m の日本部分、経度・緯度の輪の配列）を使う
+  try{
+    const rings=await fetch('land.json').then(r=>{ if(!r.ok) throw 0; return r.json(); });
+    const els=[];
+    rings.forEach(r=>{ if(!r||r.length<4||!landRing(r)) return;
+      const el=document.createElementNS(NS,'path');
+      el.setAttribute('d','M'+r.map(([lo,la])=>{const q=proj(la,lo);return q[0].toFixed(2)+' '+q[1].toFixed(2)}).join('L')+'Z');
+      el.setAttribute('fill','var(--land)'); el.setAttribute('stroke','var(--coast)'); el.setAttribute('stroke-width','1');
+      el.setAttribute('vector-effect','non-scaling-stroke'); el.style.pointerEvents='none'; els.push(el); });
+    if(els.length>=50){ gLand.replaceChildren(...els); $('landnote').textContent=T('海岸線：Natural Earth 1:10m（パブリックドメイン）','Coastline: Natural Earth 1:10m (public domain)'); return; }
+  }catch(e){ /* 無ければ従来の方法 */ }
   try{
     const m = await import('https://cdn.jsdelivr.net/npm/world-countries@5.1.0/data/jpn.geo.json/+esm');
     const gj = m.default || m;
@@ -473,7 +484,6 @@ async function loadLand(){
     if(!n) throw new Error('empty');
     $('landnote').textContent='海岸線：mledoze/countries（ODbL）';
   }catch(err){ $('landnote').textContent='海岸線データを読み込めなかったため、陸地を表示していません。'; }
-  loadLand10m();
 }
 // 詳しい海岸線（Natural Earth 1:10m、world-atlas の TopoJSON）。読み込めたら粗い輪郭と差し替える
 function landRing(ring){ let minLat=90,maxLat=-90,minLon=180,maxLon=-180;
