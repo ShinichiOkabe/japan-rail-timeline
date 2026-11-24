@@ -298,6 +298,9 @@ ALIAS.push(['ゆいれーる','沖縄都市モノレール'],['西部','西武�
 let ALLNAMES=null;
 function lineQ(){ const q=norm($('qline').value); let alts=[q];
   ALIAS.forEach(([a,b])=>{ const na=norm(a), nb=norm(b); alts.forEach(x=>{ if(x.includes(na)&&!(nb.includes(na)&&x.includes(nb))){ const y=x.replace(na,nb); if(!alts.includes(y)) alts.push(y); } }); });
+  // 「山陰本線」「東海道本線」など：国のデータの路線名は「山陰線」「東海道線」なので、その名前の路線があれば言い換える
+  if(typeof NET!=='undefined' && NET){ if(!ALLNAMES){ ALLNAMES=new Set(); NET.lines.forEach(l=>l[1].forEach(x=>ALLNAMES.add(norm(x[0])))); }
+    alts.slice().forEach(x=>{ if(x.length>3&&x.endsWith('本線')){ const y=x.slice(0,-2)+'線'; if(ALLNAMES.has(y)&&!alts.includes(y)) alts.push(y); } }); }
   const more=[]; alts.forEach(x=>{ if(x.length>2&&x.endsWith('線')) more.push(x.slice(0,-1)); }); alts=alts.concat(more).filter(x=>x!==q&&x.length>=2);
   const shorts=new Set(ALIAS.map(([a])=>norm(a))); alts=alts.filter(x=>!shorts.has(x)); // 略称そのものは誤一致しやすいので、正式名に置き換えた形だけで探す
   // その名前の路線が実在するとき（例：京王線）は、会社全体（京王電鉄の全路線）では探さない
@@ -418,7 +421,11 @@ svg.addEventListener('pointermove',ev=>{ if(!drag||!pts.has(ev.pointerId))return
   if(Math.abs(ev.clientX-drag.x)+Math.abs(ev.clientY-drag.y)>4) moved=true;
   vb=[drag.vb[0]-dx,drag.vb[1]-dy,drag.vb[2],drag.vb[3]]; setVB()});
 const endDrag=ev=>{pts.delete(ev.pointerId); if(!pts.size){drag=null;svg.classList.remove('drag')} else if(drag){const p=[...pts.values()][0];drag={x:p[0],y:p[1],vb:[...vb],d:0}}};
-svg.addEventListener('pointerup',ev=>{const wasMoved=moved;endDrag(ev); if(!wasMoved){const t=ev.target.closest('[data-id]'); if(t) select(+t.dataset.id,false); else { const n=ev.target.closest('[data-net]'); if(n) netClick(+n.dataset.net); }}});
+svg.addEventListener('pointerup',ev=>{const wasMoved=moved, multi=pts.size>1; endDrag(ev); if(!wasMoved&&!multi){const t=ev.target.closest('[data-id]'); if(t) select(+t.dataset.id,false); else { const n=ev.target.closest('[data-net]'); if(n) netClick(+n.dataset.net); }
+  // 地図を押したら、その場所を中心に拡大する（全国表示なら地方くらいまで、それ以外は2倍）
+  const [x,y]=toSvg(ev); clickZoom(x,y); }});
+function clickZoom(x,y){ const whole=vb[2]>=FULL[2]*0.7; const nw=Math.max(whole?FULL[2]*0.22:vb[2]*0.5,0.2), nh=vb[3]*nw/vb[2];
+  vb=[x-nw/2,y-nh/2,nw,nh]; setVB(); }
 svg.addEventListener('pointercancel',endDrag);
 
 // ---- drawing
@@ -806,20 +813,28 @@ function drawStations(){
     for(const r of STA){ if(!staActive(r,y)) continue; const q=proj(r[8],r[7]); if(inV(q[0],q[1])) list.push([r,q]); if(list.length>3000) break; }
   }
   if(selSta){ const cur=atYear(selSta,y); if(cur){ const q=proj(cur[8],cur[7]); list.push([cur,q,true]); } updateStaDetail(); } // その年に営業していない駅は地図に出さない
+  // 駅名が重なるときは、選んだ駅 → 乗換駅（近くに別の路線の駅が多い駅）→ 検索した路線の駅 の順に優先して表示する
+  { const xs=list.map(e=>[e, e[2]?1e9:xferCount(e[0],y)*10+(e[3]?5:0)]); xs.sort((a,b)=>b[1]-a[1]); list.splice(0,list.length,...xs.map(x=>{ x[0].pri=x[1]; return x[0]; })); }
   const frag=document.createDocumentFragment(); const placed=[];
   const lineLabels = lineSt.length && (list.length<=260 || k<0.05);
-  list.forEach(([r,q,sel,ls])=>{
+  list.forEach(ent=>{ const [r,q,sel,ls]=ent;
     const c=document.createElementNS(NS,'circle'); c.setAttribute('cx',q[0]); c.setAttribute('cy',q[1]); c.setAttribute('r',sel?rr*2:rr);
     c.setAttribute('fill','var(--panel)'); c.setAttribute('stroke',sel?'var(--plan)':'var(--fg)'); c.setAttribute('stroke-width',sel?'2.5':'1'); c.setAttribute('vector-effect','non-scaling-stroke');
     const tt=document.createElementNS(NS,'title'); tt.textContent=EN?`${sName(r)}（${r[0]}）　${r[1]}・${r[2]}`:`${r[0]}${yomi(r)?'（'+yomi(r)+'）':''}　${r[1]}・${r[2]}`; c.append(tt); frag.append(c);
     if(ls) c.setAttribute('stroke', ls==='t'?'var(--thru)':'var(--hl)');
-    if(sel || (ls && lineLabels) || (k<0.03 && list.length<900)){
-      if(!sel && placed.some(([a,b])=>Math.abs(a-q[0])<fs*2.6&&Math.abs(b-q[1])<fs*(kanaOn&&YOMI?1.9:1.1))) return; placed.push(q);
-      // 駅名は、近くの駅（＝線路の向き）と反対側の斜め方向に置き、線を隠さないようにする
+    if(sel || (ls && lineLabels) || (k<0.035 && (list.length<900 || ent.pri>=20))){
+      // 駅名は、近くの駅（＝線路の向き）と反対側の斜め方向を優先し、ほかの駅名と重ならない位置に置く。置けなければ省く
+      const fz=sel?fs*1.25:fs, nm=sName(r), hasK=kanaOn&&(EN?r[0]:yomi(r))&&(EN?r[0]:yomi(r))!==nm;
+      if(!sel && placed.some(p=>p.n===nm && Math.abs(p.qx-q[0])<fs*3 && Math.abs(p.qy-q[1])<fs*3)) return;
       let nb=[]; for(const o of list){ const dx=o[1][0]-q[0], dy=o[1][1]-q[1], dd=dx*dx+dy*dy; if(dd>1e-12) nb.push([dd,dx,dy]); } nb.sort((a,b)=>a[0]-b[0]); nb=nb.slice(0,5).filter(x=>x[0]<=nb[0][0]*9);
-      let bq=[1,-1], bs=Infinity; for(const qd of [[1,-1],[-1,-1],[1,1],[-1,1]]){ let sc=0; for(const [dd,dx,dy] of nb){ const l=Math.sqrt(dd); sc+=Math.max(0,(qd[0]*dx+qd[1]*dy)/(l*1.4142)); } if(sc<bs-0.05){bs=sc;bq=qd;} }
-      const fz=sel?fs*1.25:fs, hasK=kanaOn&&(EN?r[0]:yomi(r))&&(EN?r[0]:yomi(r))!==sName(r);
-      const ty = bq[1]<0 ? q[1]-rr*1.2 : q[1]+rr*1.2+fz*0.85+(hasK?fz*0.66:0);
+      const qds=[[1,-1],[-1,-1],[1,1],[-1,1]].map(qd=>{ let sc=0; for(const [dd,dx,dy] of nb){ const l=Math.sqrt(dd); sc+=Math.max(0,(qd[0]*dx+qd[1]*dy)/(l*1.4142)); } return [sc,qd]; }).sort((a,b)=>a[0]-b[0]+(a[1]===undefined?0:0));
+      const tw=[...nm].reduce((w,ch)=>w+(ch.charCodeAt(0)>255?1:0.58),0)*fz, th=fz*(hasK?1.75:1.05);
+      const boxOf=qd=>{ const x0=qd[0]>0? q[0]+rr*1.6 : q[0]-rr*1.6-tw; const yb= qd[1]<0 ? q[1]-rr*1.2 : q[1]+rr*1.2+fz*0.85+(hasK?fz*0.66:0); return [x0, yb-th+fz*0.15, x0+tw, yb+fz*0.2, yb]; };
+      const hitB=b=>placed.some(p=>b[0]<p.b[2]&&b[2]>p.b[0]&&b[1]<p.b[3]&&b[3]>p.b[1]);
+      let bq=null, box=null; for(const [sc,qd] of qds){ const b=boxOf(qd); if(!hitB(b)){ bq=qd; box=b; break; } }
+      if(!bq){ if(!sel) return; bq=qds[0][1]; box=boxOf(bq); }
+      placed.push({b:box,n:nm,qx:q[0],qy:q[1]});
+      const ty=box[4];
       const t=document.createElementNS(NS,'text'); t.setAttribute('x',q[0]+bq[0]*rr*1.6); t.setAttribute('y',ty); t.setAttribute('font-size',fz); if(bq[0]<0) t.setAttribute('text-anchor','end');
       t.setAttribute('fill','var(--fg)'); t.setAttribute('paint-order','stroke'); t.setAttribute('stroke','var(--land)'); t.setAttribute('stroke-width',fs*0.28); t.setAttribute('stroke-opacity','0.7'); t.style.pointerEvents='none';
       if(sel) t.setAttribute('font-weight','700'); t.textContent=sName(r); frag.append(t);
@@ -904,6 +919,14 @@ function selectStation(i){
   const q=proj(r[8],r[7]); fitPoints([[q[0]-15,q[1]-15],[q[0]+15,q[1]+15]],0); draw();
 }
 // 国の路線データの線形（線路の形）に沿って駅を並べる。枝分かれや途切れがある路線では null を返す
+// 乗換駅の度合い：半径約400m以内にある、営業中の駅の路線の数
+function xferCount(r,y){
+  const key='xf|'+y; let G=MEMO.get(key);
+  if(!G){ G=new Map(); STA.forEach(s=>{ if(!staActive(s,y)) return; const k=Math.floor(s[7]*100)+','+Math.floor(s[8]*100); if(!G.has(k)) G.set(k,[]); G.get(k).push(s); }); MEMO.set(key,G); }
+  const ck='xc|'+y+'|'+r[0]+'|'+r[7]+'|'+r[8]; const hit=MEMO.get(ck); if(hit!==undefined) return hit;
+  const lines=new Set(), cx=Math.floor(r[7]*100), cy=Math.floor(r[8]*100);
+  for(let dx=-1;dx<=1;dx++) for(let dy=-1;dy<=1;dy++){ for(const s of (G.get((cx+dx)+','+(cy+dy))||[])){ if(Math.abs(s[7]-r[7])<0.0045&&Math.abs(s[8]-r[8])<0.0037) lines.add(s[1]+'｜'+fam(s[2])); } }
+  const v=lines.size; MEMO.set(ck,v); return v; }
 function geoOrder(rows,ln,op,y){
   if(!NET||rows.length<3) return null;
   const key='go|'+y+'|'+ln+'|'+op+'|'+rows.length; const hit=MEMO.get(key); if(hit!==undefined) return hit;
