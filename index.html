@@ -287,7 +287,9 @@ STATS.forEach(s=>{const b=document.createElement('button');b.className='chip';b.
 ['qline','qsta'].forEach(id=>$(id).addEventListener('input',update));
 $('kana').checked=kanaOn; $('kana').addEventListener('change',()=>{ kanaOn=$('kana').checked; try{localStorage.setItem('kana',kanaOn?'1':'0')}catch(e){} _staDetailKey=''; update(); });
 $('thru').checked=thruOn; $('thru').addEventListener('change',()=>{ thruOn=$('thru').checked; try{localStorage.setItem('thru',thruOn?'1':'0')}catch(e){} update(); if(lineQ().q) fitLine(); });
-let fitTimer=null; $('qline').addEventListener('input',()=>{clearTimeout(fitTimer); fitTimer=setTimeout(fitLine,500)});
+let fitTimer=null; $('qline').addEventListener('input',()=>{clearTimeout(fitTimer); fitTimer=setTimeout(fitLine,500);
+  // 路線名を変えたら、その路線に無い駅の選択と詳細の表示を消す
+  if(selSta && (!$('qline').value.trim() || !lineMatch(selSta[1],selSta[2],lineQ()))){ selSta=null; _staDetailKey=''; $('detail').innerHTML=`<span class="note">${T('一覧の行か地図の線を選ぶと詳細を表示します。','Select a row or a line on the map to see details.')}</span>`; draw(); } });
 function linePoints(){ if(!NET) return []; computeLineHit(); if(!lineHit) return []; const y=netYear(), out=[]; [...lineHit,...(thruHit||[])].forEach(i=>{const n=netEls[i]; if(!n.ivs.some(([a,b])=>a<=y&&y<=b)) return; const f=NET.lines[i][3]; for(let j=0;j<f.length;j+=8) out.push(proj(f[j+1],f[j]));}); shareRuns.forEach(([pts])=>pts.forEach(q=>out.push(proj(q[1],q[0])))); return out; }
 function fitLine(){ const pts=linePoints(); if(pts.length) fitPoints(pts,0.08); }
 document.querySelectorAll('[data-range]').forEach(b=>b.onclick=()=>{const [a,z]=b.dataset.range.split(',');$('from').value=a;$('to').value=z;update()});
@@ -310,11 +312,12 @@ function lineQ(){ const q=norm($('qline').value); let alts=[q]; const HONSEN=new
     if([...ALLNAMES].some(n=>nameHas(n,q))) alts=alts.filter(x=>!COMP.some(c=>x===norm(c)||x===norm(c)+'線')); }
   return {q,alts,trim}; }
 const GENERIC=['新幹線','本線','支線','モノレール','ライナー','鋼索線','ケーブル','新交通','地下鉄'];
+function nameHasT(a,q){ let i=a.indexOf(q); while(i>=0){ const nx=a[i+q.length]; if((i===0||/[0-9０-９a-z号(（・]/.test(a[i-1])) && (nx===undefined||/[・本線(（)）\s｜|\-]/.test(nx))) return true; i=a.indexOf(q,i+1); } return false; }
 function nameHas(a,q){ if(GENERIC.some(g=>q===norm(g))) return a.includes(q); let i=a.indexOf(q); while(i>=0){ if(i===0||/[0-9０-９a-z線号(（)）・]/.test(a[i-1])) return true; i=a.indexOf(q,i+1); } return false; }
 function lineMatch(text, opText, Q){ if(!Q.q) return true; const a=norm(text), o=norm(opText||''); const all=a+'｜'+o;
   if(nameHas(a,Q.q)||o.includes(Q.q)) return true;
   const FULLS=new Set(ALIAS.map(([,b])=>norm(b)).concat(COMP.map(norm)));
-  return Q.alts.some(x=>{ if(Q.trim&&Q.trim.has(x)&&a.includes('新幹線')&&!Q.q.includes('新幹')) return false; /* 「東海道線」で東海道新幹線を拾わない */ const c=COMP_L.find(c=>x.startsWith(c)&&x.length>c.length); if(!c) return ((x.length>=3||FULLS.has(x))&&o.includes(x))||nameHas(a,x)||(FULLS.has(x)&&o.length>=2&&x.includes(o)); const rest=x.slice(c.length); return (o.includes(c)||(o.length>=2&&c.includes(o))||(OP_EQ[c]||[]).some(k=>o.includes(k)))&&(nameHas(a,rest)||(rest.length>1&&rest.endsWith('線')&&a===rest)); }); }
+  return Q.alts.some(x=>{ if(Q.trim&&Q.trim.has(x)&&!COMP_L.some(c=>x.startsWith(c)&&x.length>c.length)) return ((x.length>=3||FULLS.has(x))&&o.includes(x))||nameHasT(a,x); /* 「横浜線」→「横浜」で横浜市営地下鉄を、「東海道線」→「東海道」で東海道新幹線を拾わない */ const c=COMP_L.find(c=>x.startsWith(c)&&x.length>c.length); if(!c) return ((x.length>=3||FULLS.has(x))&&o.includes(x))||nameHas(a,x)||(FULLS.has(x)&&o.length>=2&&x.includes(o)); const rest=x.slice(c.length); return (o.includes(c)||(o.length>=2&&c.includes(o))||(OP_EQ[c]||[]).some(k=>o.includes(k)))&&(nameHas(a,rest)||(rest.length>1&&rest.endsWith('線')&&a===rest)); }); }
 const COMP_L=COMP.slice().sort((a,b)=>b.length-a.length); // 長い社名から先に照合（「大阪市」より「大阪市高速電気軌道」）
 const OP_EQ={'旅客鉄道':['jr','国鉄','国有鉄道'],'大阪市高速電気軌道':['osakametro','大阪市'],'東京地下鉄':['東京メトロ','営団','帝都高速度']};
 const _NC=new Map();
@@ -518,6 +521,7 @@ const SBS=V('総武本線（千葉〜佐倉）',JE), SBN=V('総武本線（佐�
   KTZP=V('京都市東西線（御陵〜太秦天神川）',['京都市']), TSE=V('東北新幹線（東京〜大宮）',JE), JSE=V('上越新幹線（大宮〜高崎）',JE), TSM=V('東北新幹線（東京〜盛岡）',JE), KWP=V('京王線（笹塚〜調布）',['京王']), FKK=V('副都心線（小竹向原〜渋谷）',['東京地下鉄']), YUK=V('有楽町線（小竹向原〜新木場）',['東京地下鉄']),
   JCT=V('中央線（立川〜東京）',JE), GBS=V('外房線（蘇我〜上総一ノ宮）',JE), YMTK=V('大和路線（天王寺〜加茂）',JW), YMTO=V('大和路線（久宝寺〜奈良）',JW),
   THY=V('東海道線（横浜〜熱海）',JE), JUTO=V('宇都宮線（大宮〜宇都宮）',JE), SNYJ=V('相鉄新横浜線（羽沢横浜国大〜西谷）',['相模鉄道']), DTN=V('田園都市線（二子玉川〜中央林間）',['東急']), THT=V('東海道線（東京〜熱海）',JE);
+const YKS=V('東海道線・根岸線（東神奈川〜桜木町）',JE), NGI=V('根岸線（桜木町〜磯子）',JE), NGO=V('根岸線（磯子〜大船）',JE);
 const VLINES=[SBS,SKY,KTK,UTL,JUT,SSL,SBK,CSK,JKY,JKB,BWK,GKT,YMT,SGN,JTZ,YMS,TSK,TUP];
 const H=(l,...o)=>S(l,...o);
 const JRE=H('','東日本旅客'), JRW=H('','西日本旅客');
@@ -528,7 +532,7 @@ const ASP=V('浅草線（泉岳寺〜押上）',['東京都']), KHP=V('京成本
   KKP=V('近鉄京都線（竹田〜大和西大寺）',['近畿日本']), NRK=V('近鉄奈良線（大和西大寺〜近鉄奈良）',['近畿日本']), CHP=V('筑肥線（姪浜〜唐津）',['九州旅客']),
   NKH=V('南海高野線（中百舌鳥〜なんば）',['南海']), CCP=V('秩父鉄道（御花畑〜三峰口・長瀞）',['秩父']), AZP=V('会津鉄道（会津高原尾瀬口〜会津田島）',['会津']),
   HKP=V('箱根登山鉄道（小田原〜箱根湯本）',['箱根']), TKP=V('東海道線（東京〜品川）',JE), OU1=V('奥羽線（福島〜新庄・山形新幹線）',JE), OU2=V('奥羽線（大曲〜秋田・秋田新幹線）',JE);
-[ASP,KHP,QHP,JCP,JSP,TOYP,CYP,HSP,HKJ,MKP,INP,KKP,NRK,CHP,NKH,CCP,AZP,HKP,TKP,OU1,OU2,SBS,SBN,NRP,NBP,GBP,JJP,GTP,OHP,TJP,SIP,ISK,ISO,NKP,SOH,YKP,JUTK,NKN,TOYS,OHG,HKKP,SYSP,KTZP,TSE,JSE,TSM,KWP,FKK,YUK,JCT,GBS,YMTK,YMTO,THY,JUTO,SNYJ,DTN,THT].forEach(s=>s.p=true);
+[ASP,KHP,QHP,JCP,JSP,TOYP,CYP,HSP,HKJ,MKP,INP,KKP,NRK,CHP,NKH,CCP,AZP,HKP,TKP,OU1,OU2,SBS,SBN,NRP,NBP,GBP,JJP,GTP,OHP,TJP,SIP,ISK,ISO,NKP,SOH,YKP,JUTK,NKN,TOYS,OHG,HKKP,SYSP,KTZP,TSE,JSE,TSM,KWP,FKK,YUK,JCT,GBS,YMTK,YMTO,THY,JUTO,SNYJ,DTN,THT].forEach(s=>s.p=true); [YKS,NGI,NGO].forEach(s=>s.p=true);
 // 相鉄線へ直通する列車は西谷から海老名方面へ走り、横浜〜西谷には乗り入れない
 const SOT=[SOH,S('相鉄いずみ野線','相模鉄道'),S('相鉄新横浜線','相模鉄道')]; // 乗り入れ先専用の区間
 const PARTIAL_SHARE=[
@@ -538,6 +542,9 @@ const PARTIAL_SHARE=[
  [GBS, JRE, [sp_('蘇我 鎌取 誉田 土気 大網 永田 本納 新茂原 茂原 八積 上総一ノ宮')], 1950, 9999, '外房線（蘇我〜上総一ノ宮）','JR東日本（外房線）'],
  [YMTK, JRW, [sp_('天王寺 東部市場前 平野 加美 久宝寺 八尾 志紀 柏原 高井田 河内堅上 三郷 王寺 法隆寺 大和小泉 郡山 奈良 平城山 木津 加茂')], 1950, 9999, '大和路線（天王寺〜加茂）','JR西日本（関西線）'],
  [YMTO, JRW, [sp_('久宝寺 八尾 志紀 柏原 高井田 河内堅上 三郷 王寺 法隆寺 大和小泉 郡山 奈良')], 1950, 9999, '大和路線（久宝寺〜奈良）','JR西日本（関西線）'],
+ [YKS, JRE, [sp_('東神奈川 横浜 桜木町')], 1950, 9999, '東海道線・根岸線（東神奈川〜桜木町）','JR東日本（東海道線・根岸線）'],
+ [NGI, JRE, [sp_('桜木町 関内 石川町 山手 根岸 磯子')], 1964, 9999, '根岸線（桜木町〜磯子）','JR東日本（根岸線）'],
+ [NGO, JRE, [sp_('磯子 新杉田 洋光台 港南台 本郷台 大船')], 1970, 9999, '根岸線（磯子〜大船）','JR東日本（根岸線）'],
  [THY, JRE, [sp_('横浜 戸塚 大船 藤沢 辻堂 茅ケ崎 平塚 大磯 二宮 国府津 鴨宮 小田原 早川 根府川 真鶴 湯河原 熱海')], 1950, 9999, '東海道線（横浜〜熱海）','JR東日本（東海道線）'],
  [JUTO, JRE, [sp_('大宮 土呂 東大宮 蓮田 白岡 新白岡 久喜 東鷲宮 栗橋 古河 野木 間々田 小山 小金井 自治医大 石橋 雀宮 宇都宮')], 1950, 9999, '宇都宮線（大宮〜宇都宮）','JR東日本（東北線）'],
  [SNYJ, H('相鉄新横浜線','相模鉄道'), [sp_('羽沢横浜国大 西谷')], 1950, 9999, '相鉄新横浜線（羽沢横浜国大〜西谷）','相模鉄道'],
@@ -580,6 +587,9 @@ const PARTIAL_SHARE=[
 // 各路線から直通列車が実際に乗り入れる路線（主なもの）：[路線, [[乗り入れ先, 開始年, 終了年], ...]]
 const THRU=[
  // ---- JRの直通運転
+ // 横浜線：東神奈川から横浜を経て桜木町へ（1932年〜）、根岸線開業（1964年）後は磯子方面へ、1985年から大船まで
+ [S('横浜線','東日本旅客'), [[YKS,1950,9999],[NGI,1964,9999],[NGO,1985,9999]]],
+ [S('根岸線','東日本旅客'), [[S('横浜線','東日本旅客'),1964,9999],[YKS,1964,9999]]],
  [S('横須賀線','東日本旅客'), [...L([SBK,SBS,NRP,NBP,GBP,SBN],1980)]],
  [SBK, [...L([S('横須賀線','東日本旅客')],1980),...L([SBS,NRP,NBP,GBP,SBN],1980)]],
  [S('総武線','東日本旅客'), [...L([S('横須賀線','東日本旅客')],1980),...L([TZ],1969)]],
