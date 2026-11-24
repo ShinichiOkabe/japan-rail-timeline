@@ -960,7 +960,7 @@ function drawStations(){
   list.forEach(ent=>{ const [r,q,sel,ls]=ent;
     const c=document.createElementNS(NS,'circle'); c.setAttribute('cx',q[0]); c.setAttribute('cy',q[1]); c.setAttribute('r',sel?rr*2:rr);
     c.setAttribute('fill','var(--panel)'); c.setAttribute('stroke',sel?'var(--plan)':'var(--fg)'); c.setAttribute('stroke-width',sel?'2.5':'1'); c.setAttribute('vector-effect','non-scaling-stroke');
-    const tt=document.createElementNS(NS,'title'); tt.textContent=EN?`${sName(r)}（${r[0]}）　${r[1]}・${r[2]}`:`${r[0]}${yomi(r)?'（'+yomi(r)+'）':''}　${r[1]}・${r[2]}`; c.append(tt); frag.append(c);
+    const tt=document.createElementNS(NS,'title'); tt.textContent=EN?`${sName(r)}（${r[0]}）　${r[1]}・${r[2]}`:`${r[0]}${yomi(r)?'（'+yomi(r)+'）':''}　${jrName(r[1],r[2])}・${r[2]}`; c.append(tt); frag.append(c);
     if(ls) c.setAttribute('stroke', ls==='t'?'var(--thru)':'var(--hl)');
     if(sel || (ls && lineLabels) || (k<0.035 && (list.length<900 || ent.pri>=20))){
       // 駅名は、近くの駅（＝線路の向き）と反対側の斜め方向を優先し、ほかの駅名と重ならない位置に置く。置けなければ省く
@@ -1050,7 +1050,7 @@ function updateStaDetail(){ if(!selSta) return; const y=netYear(); const cur=atY
   const hist=nameHistory(selSta);
   const span=h=>EN?`${h.b===1950?'before 1950':h.b}–${h.e===9999?'':h.e}`:`${h.b===1950?'1950年以前':h.b+'年'}〜${h.e===9999?'':h.e+'年'}`;
   const histHtml = hist.length>1 ? `<div class="note">${T('駅名の変遷：','Name history: ')}${hist.map(h=>`${(n=>h===hist.find(x=>cur&&x.n===cur[0])?'<b>'+n+'</b>':n)(rb([h.n,r[1],r[2]]))}（${span(h)}）`).join(' → ')}</div>` : '';
-  $('detail').innerHTML=`<div class="t">${rb(r)}${T('駅',' Station')}　<span style="font-weight:400">${r[1]}</span></div><div>${r[2]}（${(EN?TYPE_EN:TYPE)[r[3]]||''}）</div>`+
+  $('detail').innerHTML=`<div class="t">${rb(r)}${T('駅',' Station')}　<span style="font-weight:400">${jrName(r[1],r[2])}</span></div><div>${r[2]}（${(EN?TYPE_EN:TYPE)[r[3]]||''}）</div>`+
     (cur? '' : `<div class="note">${T(y+'年にはこの駅は営業していません。','This station was not in service in '+y+'.')}</div>`)+histHtml+`<div class="note">${yrs(r)}${T('（国土数値情報の年単位の記録）',' (yearly records, National Land Numerical Information)')}</div>`; }
 function selectStation(i){
   const r=STA[i]; selSta=r; selId=null;
@@ -1142,7 +1142,7 @@ function renderLineStations(box){
   let html=`<div class="yr">${T(`路線と駅（国土数値情報・${y}年時点）${groups.size}路線`,`Lines and stations as of ${y}: ${groups.size} line${groups.size>1?'s':''}`)}</div>`;
   [...groups.entries()].slice(0,30).forEach(([k,idx])=>{
     const [ln,op]=k.split('｜'); const rows=idx.map(i=>[...STA[i].slice(0,9),i]); const ord=ordered.has(k)?rows:(geoOrder(rows,ln,op,y)||chainOrder(rows));
-    const so=shortOp(op), lab=(so&&!ln.startsWith(so)&&!ln.includes('（')&&!/^JR/.test(so)&&!/^(JR|東武|西武|京王|小田急|東急|京急|京成|相鉄)/.test(ln)?so+' ':'')+ln;
+    const so=shortOp(op), lab=/旅客鉄道|国有鉄道/.test(op)&&jrName(ln,op)!==ln?jrName(ln,op):(so&&!ln.startsWith(so)&&!ln.includes('（')&&!/^JR/.test(so)&&!/^(JR|東武|西武|京王|小田急|東急|京急|京成|相鉄)/.test(ln)?so+' ':'')+ln;
     html+=`<div class="linebox"><div class="lt"><span class="t">${esc(lab)}</span> <span class="m">${op}・${ord.length}${T('駅',' stations')}</span></div><div class="chips">`+
       ord.map(r=>`<button class="stchip" data-s="${r[9]}">${rb(r)}</button>`).join('')+`</div></div>`;
   });
@@ -1205,13 +1205,16 @@ function renderStations(){
         : `<div style="margin-top:6px">${T('この名前を含む駅は、ほかの路線にも見つかりませんでした。','No station with this name was found on any line either.')}</div>`)+`</div>`;
     return; }
   box.innerHTML=`<div class="yr">${T(`駅（国土数値情報）${hits.length}件${hits.length>150?'（先頭150件を表示）':''}`,`Stations: ${hits.length}${hits.length>150?' (first 150 shown)':''}`)}</div>`+
-    (hits.length? hits.slice(0,150).map(i=>{const r=STA[i];return `<div class="ev sta" data-s="${i}" tabindex="0" role="button"><div class="d">${r[6]===9999?T('営業中','Open'):T('廃止等','Closed')}</div><div><span class="t">${esc(sName(r))}</span>${kn(r)} <span class="s lnk" data-s="${i}" role="button" tabindex="0" title="${T('この路線を地図に表示','Show this line on the map')}">${esc(r[1])}</span></div><div class="m">${r[2]}　｜　${yrs(r)}</div></div>`}).join('')
+    (hits.length? hits.slice(0,150).map(i=>{const r=STA[i];return `<div class="ev sta" data-s="${i}" tabindex="0" role="button"><div class="d">${r[6]===9999?T('営業中','Open'):T('廃止等','Closed')}</div><div><span class="t">${esc(sName(r))}</span>${kn(r)} <span class="s lnk" data-s="${i}" role="button" tabindex="0" title="${T('この路線を地図に表示','Show this line on the map')}">${esc(jrName(r[1],r[2]))}</span></div><div class="m">${r[2]}　｜　${yrs(r)}</div></div>`}).join('')
       : `<div class="empty warn">${T('この名前を含む駅は見つかりませんでした。','No station matches this name.')}</div>`);
 }
 // 駅の一覧の路線名を押したら、その路線を地図に表示する。廃止などでその年月に無いときは、存続していた年月に移る
+// 国土数値情報では「中央線」「函館線」のように「本」を省いた名前なので、JRの正式な「〇〇本線」の名前で表示する
+const HONSEN_JR=new Set(['中央','東海道','東北','山陽','山陰','北陸','信越','奥羽','羽越','函館','室蘭','根室','宗谷','石北','釧網','留萌','日高','関西','紀勢','鹿児島','日豊','長崎','筑豊','久大','豊肥','総武','高山']);
+function jrName(ln,op){ if(!/旅客鉄道|国有鉄道/.test(op||'')) return ln; const m=ln.match(/^(.+?)線(.*)$/); return m&&HONSEN_JR.has(m[1])?m[1]+'本線'+m[2]:ln; }
 function showLineOf(i){ const r=STA[i]; if(!r) return; const so=shortOp(fam(r[2]));
   const jr=/^JR|国鉄|国有/.test(so)||/旅客鉄道|国有鉄道/.test(r[2]);
-  $('qline').value=(so&&!jr&&!r[1].startsWith(so)?so:'')+r[1];
+  $('qline').value=jr?jrName(r[1],r[2]):(so&&!r[1].startsWith(so)?so:'')+r[1];
   // 同じ路線（名前と事業者）の駅がいた期間全体で判断する
   const fo=fam(r[2]); let a0=9999,a1=0; STA.forEach(x=>{ if(x[1]===r[1]&&fam(x[2])===fo){ a0=Math.min(a0,x[5]); a1=Math.max(a1,x[6]===9999?9999:x[6]); } });
   const y=+tYm().slice(0,4);
