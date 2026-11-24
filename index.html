@@ -903,7 +903,7 @@ function evGeom(e){
   const Q=lineQ(e.line), kx=Math.cos(36*Math.PI/180), D=(a,b)=>Math.hypot((a[0]-b[0])*kx,a[1]-b[1]);
   const names=e.path.filter(n=>n[0]!=='@');
   const pos=names.map(n=>{ const rs=[...(_staByName.get(n)||[]),...(n.replace(/[（(].*$/,'')!==n?(_staByName.get(n.replace(/[（(].*$/,''))||[]):[])].filter(r=>staActive(r,y)); const m=rs.find(r=>lineMatch(r[1],r[2],Q))||rs[0];
-    if(m) return {q:[m[7],m[8]],r:0.006}; const v=ST[n]; const c=v?[v[1],v[0]]:null; return c?{q:c,r:0.015}:null; }).filter(Boolean);
+    if(m){ (e._xy=e._xy||{})[n]=[m[7],m[8]]; return {q:[m[7],m[8]],r:0.006}; } const v=ST[n]; const c=v?[v[1],v[0]]:null; return c?{q:c,r:0.015}:null; }).filter(Boolean);
   if(pos.length<2) return null;
   let bx=[180,-180,90,-90]; pos.forEach(({q})=>{ bx=[Math.min(bx[0],q[0]),Math.max(bx[1],q[0]),Math.min(bx[2],q[1]),Math.max(bx[3],q[1])]; });
   const m=0.1+0.3*Math.max(bx[1]-bx[0],bx[3]-bx[2]); bx=[bx[0]-m,bx[1]+m,bx[2]-m,bx[3]+m];
@@ -1024,8 +1024,10 @@ function drawLabels(){
   document.querySelectorAll('#map [data-scale]').forEach(t=>t.setAttribute('font-size',fs*0.95));
   const names=new Set();
   const se=EV[selId]; if(se){ const pp=se.path.filter(n=>n[0]!=='@'); names.add(pp[0]); names.add(pp[pp.length-1]); }
-  const inView=n=>{const [x,y]=P[n];return x>=vb[0]&&x<=vb[0]+vb[2]&&y>=vb[1]&&y<=vb[1]+vb[3]};
-  [...names].filter(n=>n&&n[0]!=='@').filter(inView).forEach(n=>{const [x,y]=P[n];
+  if(se) evGeom(se); // 駅名は、国土数値情報の駅の位置があればそこに置く
+  const XY=n=>{ const c=se&&se._xy&&se._xy[n]; return c?proj(c[1],c[0]):P[n]; };
+  const inView=n=>{const [x,y]=XY(n);return x>=vb[0]&&x<=vb[0]+vb[2]&&y>=vb[1]&&y<=vb[1]+vb[3]};
+  [...names].filter(n=>n&&n[0]!=='@').filter(inView).forEach(n=>{const [x,y]=XY(n);
     const t=document.createElementNS(NS,'text');t.setAttribute('x',x+fs*0.5);t.setAttribute('y',y-fs*0.4);t.setAttribute('font-size',fs*1.05);t.setAttribute('font-weight','700');t.setAttribute('fill','var(--fg)');
     t.setAttribute('paint-order','stroke');t.setAttribute('stroke','var(--land)');t.setAttribute('stroke-width',fs*0.3);t.style.pointerEvents='none';t.textContent=n;gLab.append(t)});
   drawStations();
